@@ -10,6 +10,7 @@ use axum::{
 };
 use anyhow::{Context, Error, Result};
 use std::net::SocketAddr;
+use std::ops::Deref;
 use std::path::PathBuf;
 use std::sync::Arc;
 use axum::response::{Html, IntoResponse};
@@ -285,6 +286,8 @@ async fn game(State(state): State<Shared>, Path(token_str): Path<String>,
     let Some(game) = state.game_manager.get_game(&token) else {
         return ErStatus::InvalidToken.json();
     };
+
+    //serde_json::to_string(game.deref());
 
     "".to_string()
 }
