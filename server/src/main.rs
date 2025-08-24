@@ -9,9 +9,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use anyhow::Result;
 
-use crate::server::server::run_server;
-use crate::server::server::Config;
-use crate::server::client_pool::*;
+use crate::server::run_server;
+use crate::server::Config;
+use crate::client_pool::*;
 use crate::gpt::GptClient;
 use tracing_subscriber::EnvFilter;
 
@@ -21,6 +21,8 @@ mod utinls;
 mod token;
 mod game_manager;
 mod app_error;
+mod client_pool;
+mod answer_cache;
 
 struct GptClientFactory {
     config: ClientFactoryConfig,
