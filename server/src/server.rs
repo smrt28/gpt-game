@@ -27,7 +27,6 @@ use serde::Deserialize;
 use serde_json::json;
 use crate::{gpt, token, GptClientFactory};
 use crate::client_pool::*;
-use crate::answer_cache::*;
 use crate::gpt::*;
 use shared::error::*;
 use tokio::time::timeout;
@@ -50,7 +49,6 @@ struct WaitParam {
 struct AppState {
     counter: Mutex<u32>,
     client_factory: Arc<ClientsPool::<GptClient>>,
-    answer_cache: StdMutex<AnswerCache>,
     config: Config,
     game_manager: GameManager,
 }
@@ -66,7 +64,6 @@ impl AppState {
         Self {
             counter: Mutex::new(0),
             client_factory: Arc::new(ClientsPool::<GptClient>::new(factory)),
-            answer_cache: StdMutex::new(AnswerCache::new()),
             config: config.clone(),
             game_manager: GameManager::new()
         }
@@ -93,13 +90,10 @@ pub async fn run_server(
     let mut app = Router::new()
         .route("/api/token", get(index))
         .route("/api/dry_ask", post(dry_ask))
-
         .route("/api/game/new", get(new_game))
         .route("/api/game/{token}/ask", post(ask))
         .route("/api/game/{token}", get(game))
         .route("/api/game/{token}/version", get(game_version))
-
-        .route("/api/answer/{token}", get(answer))
         .fallback(get(handler_404))
         ;
 
@@ -135,49 +129,6 @@ pub async fn run_server(
 
 async fn handler_404() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, "Not found")
-}
-
-async fn answer(
-    State(state): State<Shared>,
-    ConnectInfo(_addr): ConnectInfo<SocketAddr>,
-    Path(token): Path<String>,
-    Query(_query): Query<WaitParam>,
-) -> String {
-    //let wait = query.wait.unwrap_or(0);
-    let snap = {
-        let cache = state.answer_cache.lock().unwrap_or_else(|e| e.into_inner());
-        match cache.get(&token) {
-            AnswerCacheEntry::Text(text) => {
-                return json!({ "status": "ok", "answer": text }).to_string();
-            }
-            AnswerCacheEntry::None => {
-                return ErStatus::InvalidToken.json();
-            }
-            AnswerCacheEntry::Pending => cache.snapshot(&token), // Option<Slot>
-        }
-    };
-
-    let Some(slot) = snap else {
-        return ErStatus::InvalidToken.json();
-    };
-
-    let wait_secs = 3;
-    if wait_secs > 0 {
-        let _ = timeout(Duration::from_secs(wait_secs), slot.notify.notified()).await;
-    } else {
-        return ErStatus::Pending.json();
-    }
-
-    let entry_after = {
-        let cache = state.answer_cache.lock().unwrap_or_else(|e| e.into_inner());
-        cache.get(&token)
-    };
-
-    match entry_after {
-        AnswerCacheEntry::Text(text) => json!({ "status": "ok", "answer": text }).to_string(),
-        AnswerCacheEntry::None       => ErStatus::InvalidToken.json(),
-        AnswerCacheEntry::Pending    => ErStatus::Pending.json(),
-    }
 }
 
 

@@ -219,7 +219,7 @@ struct RequestBody<'a> {
             .json(&body)
             .send()
             .await
-            .context("HTTP request failed")?;
+            .context("AI HTTP request failed")?;
 
         let status = resp.status();
         let bytes = resp.bytes().await.context("reading body failed")?;

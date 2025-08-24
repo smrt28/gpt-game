@@ -28,6 +28,7 @@ pub enum ErStatus {
 }
 
 impl ErStatus {
+    /*
     pub fn json(&self) -> String {
         match self {
             ErStatus::Pending => Er::status("pending"),
@@ -37,4 +38,6 @@ impl ErStatus {
             ErStatus::InvalidRequest => Er::status("invalid_request"),
         }
     }
+    
+     */
 }
