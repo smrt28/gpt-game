@@ -6,6 +6,8 @@ mod chat;
 mod ask_prompt_component;
 mod com;
 mod www_error;
+mod game_component;
+mod board_component;
 
 use std::future::pending;
 use std::time::Duration;
@@ -17,12 +19,13 @@ use log::info;
 //use gloo_net::http::Request;
 //use crate::c1::*;
 //use crate::chat::*;
-use crate::ask_prompt_component::*;
+
 use gloo_storage::{LocalStorage, Storage};
 use wasm_bindgen::JsValue;
 use anyhow::{Context, Result};
 use log::kv::Source;
 use crate::com::*;
+use crate::game_component::*;
 
 struct SoftState {
     n: UseStateHandle<i32>,
@@ -90,100 +93,6 @@ fn use_navigator_expect() -> Navigator {
     use_navigator().expect("use_navigator_expect: must be rendered inside a <Router>")
 }
 
-
-
-
-
-#[function_component]
-fn Game() -> Html {
-
-    let navigator = use_navigator_expect();
-    let debug = use_state(|| { String::new() });
-    let pending = use_state(|| { let a:Option<bool> = None; a  });
-
-    let question_in_air = use_state(|| { false });
-
-    let token: String = match LocalStorage::get("token").ok() {
-        Some(token) => token,
-        None => {
-            navigator.push(&Route::Home);
-            return html! {};
-        }
-    };
-
-    {
-        let pending = pending.clone();
-        use_effect_with(token.clone(), move |token: &String| {
-            let token = token.clone();
-            let pending = pending.clone();
-            wasm_bindgen_futures::spawn_local(async move {
-                let res = fetch_pending(token.as_str(), false).await.unwrap();
-                pending.set(Some(res));
-            });
-        });
-    }
-
-
-    {
-        let debug = debug.clone();
-        use_effect_with(token.clone(), move |token: &String| {
-            let token = token.clone();
-            let debug = debug.clone();
-            wasm_bindgen_futures::spawn_local(async move {
-                match fetch_text(&format!("/api/game/{token}/version?wait=1")).await {
-                    Ok(res) => debug.set(res),
-                    Err(e) => {
-                        navigator.push(&Route::Home);
-                        log::error!("fetch /api/game failed: {e:?}");
-                    },
-                }
-            });
-            || ()
-        });
-    }
-
-    let mut pending_local = "N/A";
-    if let Some(pending) = *pending {
-        if pending {
-            pending_local = "pending";
-        } else {
-            pending_local = "ready";
-        }
-    }
-
-    let on_send = {
-        let token = token.clone();
-        let question_in_air = question_in_air.clone();
-        Callback::from(move |text: String| {
-            pending.set(Some(true));
-            let token = token.clone();
-            let question_in_air = question_in_air.clone();
-            wasm_bindgen_futures::spawn_local(async move {
-                question_in_air.set(true);
-                if let Ok(res) = send_question(&token, &text).await {
-                    info!("res: {:?}", res);
-                }
-                question_in_air.set(false);
-            });
-        })
-    };
-
-
-
-    html! {
-        <>
-        <h1>{ token }</h1>
-        <AskPrompt prompt={"Make your guess..."}
-            on_send={on_send}
-            disabled={*question_in_air}
-        />
-        <hr/>
-        <pre>{ debug.to_string() }</pre>
-        <pre>{ question_in_air.to_string() }</pre>
-        <pre>{"pending: "} {pending_local}</pre>
-        </>
-    }
-}
 
 #[function_component]
 fn App() -> Html {
