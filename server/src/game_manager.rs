@@ -15,18 +15,9 @@ pub fn sanitize_question(question: &String) -> Option<String> {
     Some(question.clone())
 }
 
-
-
-
-
 pub struct GameManager {
     game_states: Arc<DashMap<Token, GameState>>,
 }
-
-
-
-
-
 
 impl GameManager {
     pub fn new() -> Self {

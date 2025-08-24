@@ -42,7 +42,10 @@ use crate::game_manager::*;
 use crate::app_error::*;
 
 #[derive(Deserialize)]
-struct WaitParam { wait: Option<u64> }
+struct WaitParam {
+    wait: Option<u64>,
+    min_version: Option<u64>,
+}
 
 struct AppState {
     counter: Mutex<u32>,
@@ -180,19 +183,16 @@ async fn answer(
 
 async fn game_version(State(state): State<Shared>,
                       ConnectInfo(_addr): ConnectInfo<SocketAddr>,
-                      Path(token_str): Path<String>) -> String {
-    let Ok(token) = Token::from_string(token_str.as_str()) else {
-        return ErStatus::InvalidToken.json();
-    };
+                      Path(token_str): Path<String>,
+                      Query(_query): Query<WaitParam>
 
-    let Some(g) = state.game_manager.get_game(&token) else {
-        return ErStatus::GameDoesNotExist.json();
-    };
-
-    json!({
+) -> Result<String, AppError> {
+    let token = Token::from_string(token_str.as_str())?;
+    let g = state.game_manager.get_game2(&token)?;
+    Ok(json!({
         "version": g.get_version(),
         "status": "ok"
-    }).to_string()
+    }).to_string())
 }
 
 
@@ -201,28 +201,24 @@ async fn ask(
     ConnectInfo(_addr): ConnectInfo<SocketAddr>,
     Path(token_str): Path<String>,
     body: Bytes
-) -> String {
+) -> Result<String, AppError> {
 
-    let Ok(token) = Token::from_string(token_str.as_str()) else {
-        return ErStatus::InvalidToken.json();
-    };
+    let token = Token::from_string(token_str.as_str())?;
 
     let Some(question) = sanitize_question(&String::from_utf8_lossy(&body).to_string()) else {
-        return ErStatus::InvalidRequest.json();
+        return Err(AppError::InvalidToken);
     };
 
-    let Some(mut g) = state.game_manager.get_game(&token) else {
-        return ErStatus::GameDoesNotExist.json();
-    };
+    let mut g = state.game_manager.get_game2(&token)?;
 
     if !g.set_pending_question(&question) {
-        return ErStatus::Pending.json();
+        return Err(AppError::InvalidToken);
     }
 
-    json!({
+    Ok(json!({
         "version": g.get_version(),
         "status": "ok"
-    }).to_string()
+    }).to_string())
 
 
 

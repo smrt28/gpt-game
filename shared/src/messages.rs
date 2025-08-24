@@ -1,5 +1,5 @@
 use serde::{Serialize, Deserialize};
-
+use serde_with::skip_serializing_none;
 
 #[derive(Serialize, Deserialize, Debug, )]
 pub enum Verdict {
@@ -23,12 +23,12 @@ pub struct Record {
     pub answers: Option<Answer>,
 }
 
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, )]
 #[derive(Default)]
 pub struct GameState {
     pub subject: String,
     pub records: Vec<Record>,
-    #[serde(skip)]
     pub pending_question: Option<Question>,
     pub versions: u32,
 }
@@ -67,5 +67,9 @@ impl GameState {
     pub fn add_record(&mut self, record: Record) {
         self.records.push(record);
         self.touch();
+    }
+
+    pub fn to_string(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string(&self)
     }
 }

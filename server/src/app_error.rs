@@ -9,6 +9,10 @@ pub enum AppError {
     InvalidToken,
     #[error("game not found")]
     GameNotFound,
+
+    #[error("invalid input")]
+    InvalidInput,
+
     #[error(transparent)]
     Any(#[from] anyhow::Error),
 
@@ -19,6 +23,7 @@ pub enum AppError {
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let status = match self {
+            AppError::InvalidInput => StatusCode::BAD_REQUEST,
             AppError::InvalidToken => StatusCode::BAD_REQUEST,
             AppError::GameNotFound => StatusCode::NOT_FOUND,
             AppError::JsonError(_) => StatusCode::INTERNAL_SERVER_ERROR,
