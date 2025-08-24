@@ -1,2 +1,2 @@
 pub mod messages;
-pub mod error;
+pub mod shared_error;

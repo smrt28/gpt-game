@@ -28,7 +28,7 @@ use serde_json::json;
 use crate::{gpt, token, GptClientFactory};
 use crate::client_pool::*;
 use crate::gpt::*;
-use shared::error::*;
+use shared::shared_error::*;
 use tokio::time::timeout;
 use tower_http::services::ServeDir;
 use tower_http::trace::{TraceLayer, DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, DefaultOnFailure};
@@ -43,7 +43,6 @@ use crate::app_error::*;
 #[derive(Deserialize)]
 struct WaitParam {
     wait: Option<u64>,
-    min_version: Option<u32>,
 }
 
 struct AppState {
@@ -139,18 +138,20 @@ async fn game_version(State(state): State<Shared>,
 
 ) -> Result<String, AppError> {
     let token = Token::from_string(token_str.as_str())?;
-    let version = {
-        state.game_manager.get_game(&token)?.get_version()
-    };
+    let pending = state.game_manager.get_game(&token)?.get_pending_question().is_some();
 
-    if version < query.min_version.unwrap_or(0 as u32) {
+    if pending && query.wait.is_some() {
         state.game_manager.wait_for_answer(&token, Duration::new(2, 0)).await?;
     }
 
-    Ok(json!({
-        "version": state.game_manager.get_game(&token)?.get_version(),
-        "status": "ok"
-    }).to_string())
+    {
+        let game = state.game_manager.get_game(&token)?;
+        Ok(json!({
+            "version": game.get_version(),
+            "status": "ok",
+            "pending": game.get_pending_question().is_some(),
+        }).to_string())
+    }
 }
 
 

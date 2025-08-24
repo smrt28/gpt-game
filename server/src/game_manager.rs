@@ -48,7 +48,7 @@ impl GameManager {
         Ok(h.notifier.clone())
     }
 
-    pub fn notice_answer(&self, token: &Token, answer: &Answer) -> Result<(), AppError> {
+    pub fn notice_answer(&self, token: &Token, _answer: &Answer) -> Result<(), AppError> {
         self.get_notifier(token)?.notify_waiters();
         Ok(())
     }
