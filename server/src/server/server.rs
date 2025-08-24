@@ -188,7 +188,7 @@ async fn game_version(State(state): State<Shared>,
 
 ) -> Result<String, AppError> {
     let token = Token::from_string(token_str.as_str())?;
-    let g = state.game_manager.get_game2(&token)?;
+    let g = state.game_manager.get_game(&token)?;
     Ok(json!({
         "version": g.get_version(),
         "status": "ok"
@@ -209,7 +209,7 @@ async fn ask(
         return Err(AppError::InvalidToken);
     };
 
-    let mut g = state.game_manager.get_game2(&token)?;
+    let mut g = state.game_manager.get_game(&token)?;
 
     if !g.set_pending_question(&question) {
         return Err(AppError::InvalidToken);
@@ -278,7 +278,7 @@ async fn game(State(state): State<Shared>, Path(token_str): Path<String>,
                   ConnectInfo(_addr): ConnectInfo<SocketAddr>) -> Result<String, AppError> {
 
     let token = Token::from_string(token_str.as_str())?;
-    let game = state.game_manager.get_game2(&token)?;
+    let game = state.game_manager.get_game(&token)?;
 
     /*
     let Ok(token) = Token::from_stringr(token_str.as_str()) else {

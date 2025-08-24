@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use serde_with::skip_serializing_none;
 
-#[derive(Serialize, Deserialize, Debug, )]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Verdict {
     Yes, No, Unable
 }
@@ -11,7 +11,7 @@ pub struct Question {
     pub text: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, )]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Answer {
     pub verdict: Verdict,
     pub comment: String,
@@ -29,7 +29,7 @@ pub struct Record {
 pub struct GameState {
     pub subject: String,
     pub records: Vec<Record>,
-    pub pending_question: Option<Question>,
+    pending_question: Option<Question>,
     pub versions: u32,
 }
 
@@ -41,8 +41,8 @@ impl Record {
         }
     }
 
-    pub fn answer(&mut self, verdict: Verdict, comment: String) {
-        self.answers = Some(Answer{ verdict, comment});
+    pub fn set_answer(&mut self, answer: &Answer) {
+        self.answers = Some(answer.clone());
     }
 }
 
@@ -71,5 +71,16 @@ impl GameState {
 
     pub fn to_string(&self) -> Result<String, serde_json::Error> {
         serde_json::to_string(&self)
+    }
+
+    pub fn answer_pending_question(&mut self, answer: &Answer) -> bool {
+        if self.pending_question.is_none() {
+            return false;
+        }
+        let mut record = Record::new(self.pending_question.take().unwrap().text);
+        record.set_answer(answer);
+        self.add_record(record);
+        self.touch();
+        true
     }
 }

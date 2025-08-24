@@ -15,7 +15,6 @@ pub enum SlotState {
     Content(String),
 }
 
-
 #[derive(Clone)]
 pub struct Slot {
     pub(crate) notify: Arc<Notify>,
