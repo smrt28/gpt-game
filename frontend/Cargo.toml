@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+
+shared = { path = "../shared" }
+
 # this is the development version of Yew
 
 log = "0.4.6"

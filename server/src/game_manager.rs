@@ -5,6 +5,7 @@ use std::sync::Arc;
 use crate::token::*;
 use dashmap::DashMap;
 use dashmap::mapref::one::RefMut;
+use shared::messages::*;
 
 pub fn sanitize_question(question: &String) -> Option<String> {
     if question.len() > 120 {
@@ -13,75 +14,18 @@ pub fn sanitize_question(question: &String) -> Option<String> {
     Some(question.clone())
 }
 
-enum Verdict {
-    Yes, No, Unable
-}
 
 
-struct Question {
-    text: String,
-}
 
-struct Answer {
-    verdict: Verdict,
-    comment: String,
-}
-
-pub struct Record {
-    questions: Question,
-    answers: Option<Answer>,
-}
-
-#[derive(Default)]
-pub struct GameState {
-    subject: String,
-    records: Vec<Record>,
-    pending_question: Option<Question>,
-    versions: u32,
-}
 
 pub struct GameManager {
     game_states: Arc<DashMap<Token, GameState>>,
 }
 
 
-impl Record {
-    fn new(question: String) -> Self {
-        Record {
-            questions: Question {text: question},
-            answers: None,
-        }
-    }
-
-    fn answer(&mut self, verdict: Verdict, comment: String) {
-        self.answers = Some(Answer{ verdict, comment});
-    }
-}
 
 
-impl GameState {
-    fn touch(&mut self) {
-        self.versions += 1;
-    }
 
-    pub fn get_version(&self) -> u32 {
-        self.versions
-    }
-
-    pub fn set_pending_question(&mut self, question: &String) -> bool {
-        if self.pending_question.is_some() {
-            return false;
-        }
-        self.pending_question = Some(Question{text: question.clone()});
-        self.touch();
-        true
-    }
-
-    pub fn add_record(&mut self, record: Record) {
-        self.records.push(record);
-        self.touch();
-    }
-}
 
 impl GameManager {
     pub fn new() -> Self {

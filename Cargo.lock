@@ -737,6 +737,7 @@ dependencies = [
  "reqwest 0.12.23",
  "serde",
  "serde_json",
+ "shared",
  "thiserror 2.0.16",
  "tokio",
  "tower",
@@ -2536,6 +2537,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "shared"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "shlex"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3560,6 +3568,7 @@ dependencies = [
  "log",
  "reqwest 0.11.27",
  "serde",
+ "shared",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasm-logger",
