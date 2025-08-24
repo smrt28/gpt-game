@@ -44,7 +44,7 @@ use crate::app_error::*;
 #[derive(Deserialize)]
 struct WaitParam {
     wait: Option<u64>,
-    min_version: Option<u64>,
+    min_version: Option<u32>,
 }
 
 struct AppState {
@@ -184,13 +184,20 @@ async fn answer(
 async fn game_version(State(state): State<Shared>,
                       ConnectInfo(_addr): ConnectInfo<SocketAddr>,
                       Path(token_str): Path<String>,
-                      Query(_query): Query<WaitParam>
+                      Query(query): Query<WaitParam>
 
 ) -> Result<String, AppError> {
     let token = Token::from_string(token_str.as_str())?;
-    let g = state.game_manager.get_game(&token)?;
+    let version = {
+        state.game_manager.get_game(&token)?.get_version()
+    };
+
+    if version < query.min_version.unwrap_or(0 as u32) {
+        state.game_manager.wait_for_answer(&token, Duration::new(2, 0)).await?;
+    }
+
     Ok(json!({
-        "version": g.get_version(),
+        "version": state.game_manager.get_game(&token)?.get_version(),
         "status": "ok"
     }).to_string())
 }
