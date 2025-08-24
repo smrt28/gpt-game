@@ -28,6 +28,7 @@ pub struct Record {
 pub struct GameState {
     pub subject: String,
     pub records: Vec<Record>,
+    #[serde(skip)]
     pub pending_question: Option<Question>,
     pub versions: u32,
 }

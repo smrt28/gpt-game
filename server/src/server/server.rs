@@ -29,7 +29,7 @@ use crate::{gpt, token, GptClientFactory};
 use crate::server::client_pool::*;
 use crate::server::answer_cache::*;
 use crate::gpt::*;
-use crate::server::error::*;
+use shared::error::*;
 use tokio::time::timeout;
 use tower_http::services::ServeDir;
 use tower_http::trace::{TraceLayer, DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, DefaultOnFailure};
@@ -39,6 +39,7 @@ use tower_http::classify::{ServerErrorsAsFailures, SharedClassifier};
 use tower::{ServiceBuilder};
 use crate::token::*;
 use crate::game_manager::*;
+use crate::app_error::*;
 
 #[derive(Deserialize)]
 struct WaitParam { wait: Option<u64> }
@@ -180,7 +181,7 @@ async fn answer(
 async fn game_version(State(state): State<Shared>,
                       ConnectInfo(_addr): ConnectInfo<SocketAddr>,
                       Path(token_str): Path<String>) -> String {
-    let Ok(token) = Token::from_stringr(token_str.as_str()) else {
+    let Ok(token) = Token::from_string(token_str.as_str()) else {
         return ErStatus::InvalidToken.json();
     };
 
@@ -202,7 +203,7 @@ async fn ask(
     body: Bytes
 ) -> String {
 
-    let Ok(token) = Token::from_stringr(token_str.as_str()) else {
+    let Ok(token) = Token::from_string(token_str.as_str()) else {
         return ErStatus::InvalidToken.json();
     };
 
@@ -278,16 +279,19 @@ async fn new_game(State(state): State<Shared>,
 }
 
 async fn game(State(state): State<Shared>, Path(token_str): Path<String>,
-                  ConnectInfo(_addr): ConnectInfo<SocketAddr>) -> String {
+                  ConnectInfo(_addr): ConnectInfo<SocketAddr>) -> Result<String, AppError> {
+
+    let token = Token::from_string(token_str.as_str())?;
+    let game = state.game_manager.get_game2(&token)?;
+
+    /*
     let Ok(token) = Token::from_stringr(token_str.as_str()) else {
         return ErStatus::InvalidToken.json();
     };
 
-    let Some(game) = state.game_manager.get_game(&token) else {
+    let Some(_game) = state.game_manager.get_game(&token) else {
         return ErStatus::InvalidToken.json();
     };
-
-    //serde_json::to_string(game.deref());
-
-    "".to_string()
+*/
+    Ok(serde_json::to_string(game.deref())?)
 }

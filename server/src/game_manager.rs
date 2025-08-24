@@ -6,6 +6,7 @@ use crate::token::*;
 use dashmap::DashMap;
 use dashmap::mapref::one::RefMut;
 use shared::messages::*;
+use crate::app_error::AppError;
 
 pub fn sanitize_question(question: &String) -> Option<String> {
     if question.len() > 120 {
@@ -37,6 +38,13 @@ impl GameManager {
     pub fn get_game(&self, token: &Token) -> Option<RefMut<Token, GameState>> {
         let rv = self.game_states.get_mut(token);
         rv
+    }
+
+    pub fn get_game2(&self, token: &Token) -> Result<RefMut<Token, GameState>, AppError> {
+        match self.game_states.get_mut(token) {
+            Some(rv) => Ok(rv),
+            None => Err(AppError::GameNotFound),
+        }
     }
 
 

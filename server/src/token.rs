@@ -44,7 +44,7 @@ impl Token {
         buf
     }
 
-    pub fn from_stringr(token_str: &str) -> Result<Self> {
+    pub fn from_string(token_str: &str) -> Result<Self> {
         let bytes = token_str.bytes();
         if bytes.len() == TOKEN_LENGTH {
             let mut token = [0u8; TOKEN_LENGTH];

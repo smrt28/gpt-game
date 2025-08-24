@@ -20,6 +20,7 @@ mod macros;
 mod utinls;
 mod token;
 mod game_manager;
+mod app_error;
 
 struct GptClientFactory {
     config: ClientFactoryConfig,
