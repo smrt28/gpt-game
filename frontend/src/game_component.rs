@@ -145,7 +145,7 @@ pub fn Game() -> Html {
                 let mut pooling = true;
                 while pooling {
                     pooling = false;
-                    match fetch_text(&format!("/api/game/{token}/version?wait=1")).await {
+                    match fetch_text(&format!("/api/game/{token}/version?wait=true")).await {
                         Ok(res) => {
                             info!("res: {:?}", res);
                             let Ok(status)

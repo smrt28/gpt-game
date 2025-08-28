@@ -23,7 +23,7 @@ use axum::http::StatusCode;
 use axum::body::Bytes;
 use axum::routing::post;
 use clap::builder::Str;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use crate::{gpt, token, GptClientFactory};
 use crate::client_pool::*;
@@ -42,7 +42,7 @@ use crate::app_error::*;
 
 #[derive(Deserialize)]
 struct WaitParam {
-    wait: Option<u64>,
+    wait: Option<bool>,
 }
 
 struct AppState {
@@ -148,10 +148,12 @@ async fn game_version(State(state): State<Shared>,
 
     {
         let game = state.game_manager.get_game(&token)?;
+        
         Ok(json!({
             "version": game.get_version(),
-            "status": "ok",
+            "status": if game.is_pending() { "pending" } else { "ok" },
             "pending": game.get_pending_question().is_some(),
+            "state": game.deref(),
         }).to_string())
     }
 }

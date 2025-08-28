@@ -55,6 +55,10 @@ impl GameState {
         self.versions
     }
 
+    pub fn is_pending(&self) -> bool {
+        self.pending_question.is_some()
+    }
+
     pub fn get_pending_question(&self) -> Option<&Question> {
         self.pending_question.as_ref()
     }
