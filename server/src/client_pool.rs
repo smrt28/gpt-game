@@ -19,8 +19,6 @@ pub trait PollableClientFactory<Client> : Send + Sync {
 pub type Factory<Client> =
     Arc<dyn PollableClientFactory<Client> + Send + Sync>;
 
-
-
 struct ClientsStorage<Client> {
     clients: Vec<Arc<Client>>,
     clients_total: i32,
@@ -37,19 +35,17 @@ impl<Client> ClientsStorage<Client> {
     }
 }
 
-
 pub struct ClientsPool<Client> {
     storage: StdMutex<ClientsStorage<Client>>,
-    factory: Arc<dyn PollableClientFactory<Client> + Send + Sync>,
+    factory: Factory<Client>,
 }
 
-#[derive(Clone)]
+
 pub struct ClientGuard<Client> {
     client: Option<Arc<Client>>,
     pool: Arc<ClientsPool<Client>>,
     notify: Arc<Notify>,
 }
-
 
 impl<Client> ClientGuard<Client> {
     pub fn client(&self) -> &Client {
@@ -81,7 +77,7 @@ impl<Client> Drop for ClientGuard<Client>
 }
 
 impl<Client> ClientsPool<Client> {
-    pub fn new(factory: Arc<dyn PollableClientFactory<Client> + Send + Sync>) -> Self {
+    pub fn new(factory: Factory<Client>) -> Self {
         Self {
             storage: StdMutex::new(ClientsStorage::<Client>::new()),
             factory: factory,
