@@ -93,6 +93,8 @@ pub async fn run_server(
         .route("/api/game/{token}/ask", post(ask))
         .route("/api/game/{token}", get(game))
         .route("/api/game/{token}/version", get(game_version))
+
+
         .fallback(get(handler_404))
         ;
 
@@ -141,7 +143,7 @@ async fn game_version(State(state): State<Shared>,
     let pending = state.game_manager.get_game(&token)?.get_pending_question().is_some();
 
     if pending && query.wait.is_some() {
-        state.game_manager.wait_for_answer(&token, Duration::new(2, 0)).await?;
+        state.game_manager.wait_for_answer(&token, Duration::new(5, 0)).await?;
     }
 
     {
@@ -171,7 +173,7 @@ async fn ask(
     let mut g = state.game_manager.get_game(&token)?;
 
     if !g.set_pending_question(&question) {
-        return Err(AppError::InvalidToken);
+        return Err(AppError::Pending);
     }
 
     Ok(json!({

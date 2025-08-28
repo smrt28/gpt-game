@@ -1,11 +1,11 @@
 use gloo_storage::{LocalStorage, Storage};
 use log::info;
-use yew::{function_component, html, use_effect, use_effect_with, use_state, Callback, Html, Properties};
+use yew::{function_component, html, use_effect, use_effect_with, use_reducer, use_state, Callback, Html, Properties};
 use crate::{board_component, use_navigator_expect, Route};
 use crate::com::{fetch_pending, fetch_text, send_question};
 use crate::ask_prompt_component::*;
 use crate::board_component::*;
-
+use wasm_bindgen_futures::spawn_local;
 
 #[function_component]
 pub fn Game() -> Html {
@@ -14,9 +14,9 @@ pub fn Game() -> Html {
     //props!{board_component::Props}
     let navigator = use_navigator_expect();
     let debug = use_state(|| { String::new() });
-    let board_props = use_state(|| board_component::Props {
-        pending: None
-    });
+    //let board_props = use_state(|| board_component::Props {
+    //    pending: None
+    //});
     let question_in_air = use_state(|| { false });
 
     let token: String = match LocalStorage::get("token").ok() {
@@ -27,6 +27,7 @@ pub fn Game() -> Html {
         }
     };
 
+    /*
     {
         let board_props = board_props.clone();
         use_effect_with(token.clone(), move |token: &String| {
@@ -92,6 +93,8 @@ pub fn Game() -> Html {
 
 
     let board_props = (*bb).clone();
+
+
     html! {
         <>
         <h1>{ token }</h1>
@@ -103,9 +106,85 @@ pub fn Game() -> Html {
         <pre>{ debug.to_string() }</pre>
         <pre>{ question_in_air.to_string() }</pre>
 
-        <Board ..board_props />
+//        <Board ..board_props />
         </>
     }
+
+     */
+
+    /*
+    use_effect_with(token.clone(), move |token: &String| {
+        board.dispatch(Act::SetPending(Some(false)));
+    });
+    */
+
+    let board = use_reducer(BoardState::default);
+
+    let on_send = {
+        let token = token.clone();
+        let board = board.clone();
+        let debug = debug.clone();
+        Callback::from(move |text: String| {
+            let board = board.clone();
+            let token = token.clone();
+            let debug = debug.clone();
+            spawn_local(async move {
+                board.dispatch(Act::SetPending(Some(true)));
+                let res = send_question(&token, &text).await.unwrap();
+                debug.set(res);
+            });
+        })
+    };
+
+    {
+        let debug = debug.clone();
+        let token = token.clone();
+        let board = board.clone();
+        use_effect(move || {
+            spawn_local(async move {
+                let mut pooling = true;
+                while pooling {
+                    pooling = false;
+                    match fetch_text(&format!("/api/game/{token}/version?wait=1")).await {
+                        Ok(res) => {
+                            info!("res: {:?}", res);
+                            let Ok(status)
+                                = serde_json::from_str::<crate::game_response::Status>(&res) else {
+                                info!("failed to parse status response: {:?}", res);
+                                navigator.push(&Route::Home);
+                                return;
+                            };
+
+                            info!("status: {}", status.status);
+                            if status.should_repeat() {
+                                pooling = true;
+                            }
+                        },
+                        Err(e) => {
+                            navigator.push(&Route::Home);
+                            log::error!("fetch /api/game failed: {e:?}");
+                        },
+                    }
+                }
+
+            });
+            || ()
+        });
+    }
+
+
+    html! {
+        <>
+        <Board board={board.clone()}/>
+        <AskPrompt prompt={"Make your guess..."}
+            on_send={on_send}
+        />
+        <pre>{"token:"}{token.to_string()}</pre>
+        <pre>{"Debug:"}{debug.to_string()}</pre>
+        </>
+    }
+
+
 }
 
 

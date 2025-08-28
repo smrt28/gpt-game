@@ -8,6 +8,9 @@ pub enum AppError {
     #[error("invalid token")]
     InvalidToken,
 
+    #[error("pending")]
+    Pending,
+
     #[error("game not found")]
     GameNotFound,
 
@@ -31,6 +34,7 @@ impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let http_status = match self {
             AppError::Timeout => StatusCode::OK,
+            AppError::Pending => StatusCode::OK,
             AppError::InvalidInput => StatusCode::BAD_REQUEST,
             AppError::InvalidToken => StatusCode::BAD_REQUEST,
             AppError::GameNotFound => StatusCode::NOT_FOUND,
@@ -41,6 +45,7 @@ impl IntoResponse for AppError {
 
         let status = match self {
             AppError::Timeout => "timeout",
+            AppError::Pending => "pending",
             _ => "error"
         };
 

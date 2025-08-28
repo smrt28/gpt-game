@@ -33,6 +33,7 @@ pub async fn fetch_pending(token: &str, wait: bool) -> anyhow::Result<bool> {
 }
 
 
+
 pub async fn send_question(token: &str, text: &str) -> anyhow::Result<String> {
     let path = format!("/api/game/{token}/ask");
     let request = Request::post(path.as_str()).body(text.to_string())?;
@@ -41,7 +42,7 @@ pub async fn send_question(token: &str, text: &str) -> anyhow::Result<String> {
         return Err(anyhow::anyhow!("ask: server error: {}", res.status()));
     }
     //async_std::task::sleep(Duration::new(1, 0)).await;
-    info!("{}: asking: {}", token, text);
+    info!("{} text:{}", path, text);
     Ok(res.text().await?)
 }
 
