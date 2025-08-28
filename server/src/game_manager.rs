@@ -36,7 +36,7 @@ impl GameManager {
         }
     }
 
-    pub fn get_game(&self, token: &Token) -> Result<RefMut<Token, GameState>, AppError> {
+    pub fn get_game(&self, token: &Token) -> Result<RefMut<'_, Token, GameState>, AppError> {
         match self.game_states.get_mut(token) {
             Some(rv) => Ok(rv),
             None => Err(AppError::GameNotFound),

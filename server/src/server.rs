@@ -178,10 +178,9 @@ async fn ask(
         return Err(AppError::Pending);
     }
 
-    Ok(json!({
-        "version": g.get_version(),
-        "status": "ok"
-    }).to_string())
+
+
+
 
 
 
@@ -216,6 +215,12 @@ async fn ask(
 
     json!({"token": token.to_owned(), "status": "ok"}).to_string()
     */
+
+    Ok(json!({
+        "version": g.get_version(),
+        "text": question,
+        "status": "ok"
+    }).to_string())
 }
 
 
