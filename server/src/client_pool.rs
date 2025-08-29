@@ -5,6 +5,7 @@ use std::sync::Mutex as StdMutex;
 use tokio::sync::futures::Notified;
 use crate::gpt::GptClient;
 use tokio::sync::Notify;
+use crate::app_error::AppError;
 
 #[derive(Clone, Default)]
 pub struct ClientFactoryConfig {
@@ -57,13 +58,17 @@ impl<Client> ClientGuard<Client> {
         }
         true
     }
-    pub async fn update(&mut self) -> bool {
+    pub async fn update(&mut self) -> Result<(), AppError> {
         if !self.client.is_none() {
-            return true;
+            return Ok(());
         }
-        self.notify.notified().await;
-        self.client = self.pool.raw_client();
-        self.has_client()
+        loop {
+            self.notify.notified().await;
+            self.client = self.pool.raw_client();
+            if self.has_client() {
+                return Ok(());
+            }
+        }
     }
 }
 
@@ -98,7 +103,7 @@ impl<Client> ClientsPool<Client> {
             storage.clients_total += 1;
             println!("creating client {}", storage.clients_total);
             return ClientGuard {
-                client: Some(Arc::new(self.factory.build_client())),
+                client: Some(self.create_client()),
                 pool: Arc::clone(self),
                 notify: storage.notify.clone(),
             };
@@ -117,5 +122,9 @@ impl<Client> ClientsPool<Client> {
     }
     fn raw_client(&self) -> Option<Arc<Client>> {
         None
+    }
+
+    fn create_client(&self) -> Arc<Client> {
+        Arc::new(self.factory.build_client())
     }
 }

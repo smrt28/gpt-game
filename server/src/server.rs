@@ -36,9 +36,11 @@ use tracing::{info, Level};
 use tracing_subscriber::fmt::layer;
 use tower_http::classify::{ServerErrorsAsFailures, SharedClassifier};
 use tower::{ServiceBuilder};
+use shared::messages::{GameError, Verdict};
 use crate::token::*;
 use crate::game_manager::*;
 use crate::app_error::*;
+use crate::token::TokenType::Answer;
 
 #[derive(Deserialize)]
 struct WaitParam {
@@ -74,9 +76,9 @@ type Shared = Arc<AppState>;
 
 fn logging() -> TraceLayer<SharedClassifier<ServerErrorsAsFailures>> {
     TraceLayer::new_for_http()
-        .make_span_with(DefaultMakeSpan::new().level(Level::INFO))
-        .on_request(DefaultOnRequest::new().level(Level::INFO))
-        .on_response(DefaultOnResponse::new().level(Level::INFO))
+        .make_span_with(DefaultMakeSpan::new().level(Level::DEBUG))
+        .on_request(DefaultOnRequest::new().level(Level::DEBUG))
+        .on_response(DefaultOnResponse::new().level(Level::DEBUG))
         .on_failure(DefaultOnFailure::new().level(Level::ERROR))
 }
 
@@ -143,8 +145,14 @@ async fn game_version(State(state): State<Shared>,
     let pending = state.game_manager.get_game(&token)?.get_pending_question().is_some();
 
     if pending && query.wait.is_some() {
-        state.game_manager.wait_for_answer(&token, Duration::new(5, 0)).await?;
+        let res = state.game_manager.wait_for_answer(&token, Duration::new(5, 0)).await;
+        if res.is_err() {
+            info!("answer not ready, reason={}", res.as_ref().unwrap_err());
+            res?;
+        }
     }
+
+    info!("ready");
 
     {
         let game = state.game_manager.get_game(&token)?;
@@ -175,46 +183,34 @@ async fn ask(
     let mut g = state.game_manager.get_game(&token)?;
 
     if !g.set_pending_question(&question) {
+        info!("pendinh question");
         return Err(AppError::Pending);
     }
 
+    let mut gpt_client = state.client_factory.pop();
+    gpt_client.update().await.unwrap();
 
 
+    let mut params = QuestionParams::default();
+    params.set_instructions("Short minimalistic answer");
+
+    info!("got client, asking: {}", question);
+    let result = gpt_client.client().ask(question.as_str(), &params).await;
 
 
-
-
-    /*
-    let token = match state.answer_cache.lock() {
-        Ok(mut cache) => cache.reserve_token(),
-        Err(_poisoned) => ErStatus::error("internal server error").json()
-    };
-
-    let state2 = state.clone();
-    let token_clone = token.clone();
-    let wrap = state2.client_factory.pop();
-    if !wrap.has_client() {
-        return ErStatus::Overloaded.json();
+    match result {
+        Ok(gpt_answer) => {
+            info!("answer received; OK");
+            let mut answer = shared::messages::Answer::new();
+            answer.verdict = Some(Verdict::NotSet);
+            answer.comment = gpt_answer.to_string();
+            g.answer_pending_question(&answer);
+        }
+        Err(err) => {
+            info!("answer received; ERR");
+           g.handle_error_response(GameError::GPTError(err.to_string()));
+        }
     }
-
-    tokio::spawn(async move {
-        tracing::info!("token registered {}", token_clone);
-        let client = wrap.client();
-
-        let mut params = QuestionParams::default();
-        params.set_instructions("Short minimalistic answer");
-
-        let result = match client.ask("Name a random well known actor.", &params).await {
-            Ok(answer) => answer.to_string().unwrap_or_default(),
-            Err(_) => ErStatus::error("internal server error").json()
-        };
-
-        let mut cache = state2.answer_cache.lock().unwrap();
-        cache.insert(&token_clone, &result);
-    });
-
-    json!({"token": token.to_owned(), "status": "ok"}).to_string()
-    */
 
     Ok(json!({
         "version": g.get_version(),

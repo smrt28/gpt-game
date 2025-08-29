@@ -3,6 +3,7 @@
 use axum::{response::{IntoResponse, Response}, http::StatusCode, Json};
 use serde::Serialize;
 
+
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
     #[error("invalid token")]

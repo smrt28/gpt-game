@@ -60,7 +60,7 @@ pub struct Response {
 }
 
 impl Response {
-    fn first_output_text_typed(&self) -> Option<&str> {
+    pub fn first_output_text_typed(&self) -> Option<&str> {
         for item in &self.output {
             if let OutputItem::Message { content } = item {
                 for part in content {

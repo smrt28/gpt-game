@@ -3,7 +3,7 @@ use serde_with::skip_serializing_none;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Verdict {
-    Yes, No, Unable
+    Yes, No, Unable, NotSet
 }
 
 #[derive(Serialize, Deserialize, Debug, )]
@@ -13,8 +13,9 @@ pub struct Question {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Answer {
-    pub verdict: Verdict,
-    pub comment: String,
+    pub verdict: Option<Verdict>,
+    pub comment: Option<String>,
+    timestamp: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, )]
@@ -23,14 +24,34 @@ pub struct Record {
     pub answers: Option<Answer>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub enum GameError {
+    #[serde(rename = "error")]
+    GPTError(String),
+}
+
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, )]
 #[derive(Default)]
 pub struct GameState {
-    pub subject: String,
+    pub subject: Option<String>,
     pub records: Vec<Record>,
     pending_question: Option<Question>,
     pub versions: u32,
+    error: Option<GameError>,
+}
+
+
+
+impl Answer {
+    pub fn new() -> Self {
+        let now = chrono::Utc::now();
+        Self {
+            verdict: None,
+            comment: None,
+            timestamp: now.to_rfc3339(),
+        }
+    }
 }
 
 impl Record {
@@ -90,5 +111,11 @@ impl GameState {
         self.add_record(record);
         self.touch();
         true
+    }
+
+    pub fn handle_error_response(&mut self, error: GameError) {
+        self.error = Some(error);
+        self.pending_question = None;
+        self.touch();
     }
 }
