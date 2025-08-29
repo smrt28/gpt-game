@@ -18,6 +18,7 @@ pub fn sanitize_question(question: &String) -> Option<String> {
 }
 use std::time::Duration;
 use serde_json::json;
+use tracing::info;
 
 #[derive(Default)]
 struct StateHelper {
@@ -55,10 +56,13 @@ impl GameManager {
     }
 
     pub async fn wait_for_answer(&self, token: &Token, t: Duration ) -> Result<(), AppError> {
-        match time::timeout(t, self.get_notifier(token)?.notified()).await {
+        info!("waiting for answer BEGIN");
+        let res =match time::timeout(t, self.get_notifier(token)?.notified()).await {
             Ok(_) => Ok(()),
             Err(_) => Err(AppError::Timeout),
-        }
+        };
+        info!("waiting for answer END");
+        res
     }
 
     pub fn delete_game(&self, token: &Token) -> Result<(), AppError> {
@@ -88,7 +92,5 @@ impl GameManager {
             },
             None => "".to_string(),
         }
-
-
     }
 }

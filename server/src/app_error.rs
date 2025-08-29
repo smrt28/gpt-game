@@ -2,7 +2,7 @@
 
 use axum::{response::{IntoResponse, Response}, http::StatusCode, Json};
 use serde::Serialize;
-
+use shared::messages::Status;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
@@ -33,26 +33,16 @@ pub enum AppError {
 
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
-        let http_status = match self {
-            AppError::Timeout => StatusCode::OK,
-            AppError::Pending => StatusCode::OK,
-            AppError::InvalidInput => StatusCode::BAD_REQUEST,
-            AppError::InvalidToken => StatusCode::BAD_REQUEST,
-            AppError::GameNotFound => StatusCode::NOT_FOUND,
-            AppError::JsonError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::Any(_) => StatusCode::INTERNAL_SERVER_ERROR,
-        };
+        let http_status = StatusCode::OK;
 
         let status = match self {
-            AppError::Timeout => "timeout",
-            AppError::Pending => "pending",
-            _ => "error"
+            AppError::Pending => Status::Pending,
+            AppError::Timeout => Status::Pending,
+            _ => Status::Error
         };
 
         let body = serde_json::json!({
             "status": status,
-           // "message": self.to_string(),
         });
         (http_status, Json(body)).into_response()
     }

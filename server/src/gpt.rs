@@ -11,6 +11,7 @@ use serde_json::{json, Value};
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
+use log::info;
 use serde::{Deserialize, Serialize};
 
 string_enum! {
@@ -201,6 +202,7 @@ struct RequestBody<'a> {
 
 
     pub async fn ask(&self, question: &str, params: &QuestionParams) -> Result<Answer> {
+        info!("asking...");
         let body = RequestBody {
             model: params.model.to_string(),
             input: question,
@@ -209,9 +211,9 @@ struct RequestBody<'a> {
             max_output_tokens: params.max_output_tokens,
             text: json!({ "verbosity": params.verbosity.to_string() }),
         };
-
+        info!("asking...1");
         let body = serde_json::to_value(&body)?;
-
+        info!("asking...2");
         let resp = self.client
             .post("https://api.openai.com/v1/responses")
             .header(CONTENT_TYPE, "application/json")
@@ -220,15 +222,17 @@ struct RequestBody<'a> {
             .send()
             .await
             .context("AI HTTP request failed")?;
-
+        info!("asking...3");
         let status = resp.status();
+        info!("asking...4");
         let bytes = resp.bytes().await.context("reading body failed")?;
-
+        info!("asking...5");
         if !status.is_success() {
             let text = String::from_utf8_lossy(&bytes);
             anyhow::bail!("OpenAI error {}: {}", status, text);
         }
 
+        info!("got responseX");
         Ok(Answer::from_bytes(&bytes)?)
     }
 }

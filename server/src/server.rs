@@ -36,15 +36,37 @@ use tracing::{info, Level};
 use tracing_subscriber::fmt::layer;
 use tower_http::classify::{ServerErrorsAsFailures, SharedClassifier};
 use tower::{ServiceBuilder};
-use shared::messages::{GameError, Verdict};
+use shared::messages::{content_response, status_response, GameError, Status, Verdict};
 use crate::token::*;
 use crate::game_manager::*;
 use crate::app_error::*;
 use crate::token::TokenType::Answer;
+use axum::extract::rejection::QueryRejection;
+
+
+use serde::de::{self, Deserializer};
+//use log::info;
+
+fn de_opt_bool<'de, D>(deserializer: D) -> Result<i32, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = Option::<String>::deserialize(deserializer)?;
+    Ok(match s.as_deref() {
+        Some("1") | Some("true") | Some("on") | Some("yes") => 1,
+        Some("0") | Some("false") | Some("off") | Some("no") => 0,
+        Some(_other) => -1,
+        None => 0,
+    })
+}
+
+
+
 
 #[derive(Deserialize)]
 struct WaitParam {
-    wait: Option<bool>,
+    #[serde(default, deserialize_with = "de_opt_bool")]
+    wait: i32,
 }
 
 struct AppState {
@@ -90,13 +112,9 @@ pub async fn run_server(
 
     let mut app = Router::new()
         .route("/api/token", get(index))
-        .route("/api/dry_ask", post(dry_ask))
         .route("/api/game/new", get(new_game))
         .route("/api/game/{token}/ask", post(ask))
         .route("/api/game/{token}", get(game))
-        .route("/api/game/{token}/version", get(game_version))
-
-
         .fallback(get(handler_404))
         ;
 
@@ -135,34 +153,37 @@ async fn handler_404() -> impl IntoResponse {
 }
 
 
-async fn game_version(State(state): State<Shared>,
+async fn game(State(state): State<Shared>,
                       ConnectInfo(_addr): ConnectInfo<SocketAddr>,
                       Path(token_str): Path<String>,
                       Query(query): Query<WaitParam>
 
 ) -> Result<String, AppError> {
+    info!("game");
     let token = Token::from_string(token_str.as_str())?;
     let pending = state.game_manager.get_game(&token)?.get_pending_question().is_some();
 
-    if pending && query.wait.is_some() {
+    info!("pending={}", pending);
+
+    let query_val = query.wait;
+
+    if query_val == -1 {
+        return Err(AppError::InvalidInput);
+    }
+
+    if pending && query_val == 1 {
+        info!("waiting");
         let res = state.game_manager.wait_for_answer(&token, Duration::new(5, 0)).await;
         if res.is_err() {
             info!("answer not ready, reason={}", res.as_ref().unwrap_err());
             res?;
         }
+        info!("ready");
     }
-
-    info!("ready");
-
-    {
-        let game = state.game_manager.get_game(&token)?;
-        
-        Ok(json!({
-            "status": if game.is_pending() { "pending" } else { "ok" },
-            "pending": game.get_pending_question().is_some(),
-            "state": game.deref(),
-        }).to_string())
-    }
+    info!("responding...");
+    let game = state.game_manager.get_game(&token)?;
+    info!("responding...2");
+    Ok(content_response(if pending {Status::Pending} else {Status::Ok}, game.deref()))
 }
 
 
@@ -172,27 +193,31 @@ async fn ask(
     Path(token_str): Path<String>,
     body: Bytes
 ) -> Result<String, AppError> {
-
+    info!("ggg a");
     let token = Token::from_string(token_str.as_str())?;
 
+    info!("ggg b");
     let Some(question) = sanitize_question(&String::from_utf8_lossy(&body).to_string()) else {
         return Err(AppError::InvalidToken);
     };
 
+    info!("ggg c");
     let mut g = state.game_manager.get_game(&token)?;
-
+    info!("ggg 1");
     if !g.set_pending_question(&question) {
-        info!("pendinh question");
+        info!("pending question");
         return Err(AppError::Pending);
     }
-
+    info!("ggg 2");
     let mut gpt_client = state.client_factory.pop();
     gpt_client.update().await.unwrap();
 
+    info!("ggg 3");
 
     let mut params = QuestionParams::default();
     params.set_instructions("Short minimalistic answer");
 
+    drop(g);
     info!("got client, asking: {}", question);
     let result = gpt_client.client().ask(question.as_str(), &params).await;
 
@@ -203,26 +228,19 @@ async fn ask(
             let mut answer = shared::messages::Answer::new();
             answer.verdict = Some(Verdict::NotSet);
             answer.comment = gpt_answer.to_string();
+            info!("ggg 4");
+            let mut g = state.game_manager.get_game(&token)?;
             g.answer_pending_question(&answer);
         }
         Err(err) => {
             info!("answer received; ERR");
+            let mut g = state.game_manager.get_game(&token)?;
            g.handle_error_response(GameError::GPTError(err.to_string()));
         }
     }
-
-    Ok(json!({
-        "status": "ok"
-    }).to_string())
+    info!("ggg 3");
+    Ok(status_response(Status::Ok))
 }
-
-
-async fn dry_ask(body: Bytes) -> String {
-    let content = String::from_utf8_lossy(&body);
-    info!("{}", content);
-    "ok".to_string()
-}
-
 
 async fn index(State(_state): State<Shared>,
              ConnectInfo(_addr): ConnectInfo<SocketAddr>) -> String {
@@ -233,11 +251,4 @@ async fn index(State(_state): State<Shared>,
 async fn new_game(State(state): State<Shared>,
                ConnectInfo(_addr): ConnectInfo<SocketAddr>) -> String {
     state.game_manager.new_game().to_string()
-}
-
-async fn game(State(state): State<Shared>, Path(token_str): Path<String>,
-                  ConnectInfo(_addr): ConnectInfo<SocketAddr>) -> Result<String, AppError> {
-    let token = Token::from_string(token_str.as_str())?;
-    let game = state.game_manager.get_game(&token)?;
-    Ok(serde_json::to_string(game.deref())?)
 }

@@ -145,7 +145,7 @@ pub fn Game() -> Html {
                 let mut pooling = true;
                 while pooling {
                     pooling = false;
-                    match fetch_text(&format!("/api/game/{token}/version?wait=true")).await {
+                    match fetch_text(&format!("/api/game/{token}?wait=true")).await {
                         Ok(res) => {
                             info!("got response: {:?}", res);
                             let Ok(status)
@@ -156,6 +156,11 @@ pub fn Game() -> Html {
                             };
 
                             info!("status: {}", status.status);
+                            if status.status == "error" {
+                                navigator.push(&Route::Home);
+                                return;
+                            }
+
                             if status.should_repeat() {
                                 pooling = true;
                             }

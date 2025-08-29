@@ -783,6 +783,7 @@ dependencies = [
  "clap",
  "dashmap",
  "linked-hash-map",
+ "log",
  "openssl",
  "rand",
  "reqwest 0.12.23",

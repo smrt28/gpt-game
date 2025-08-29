@@ -15,9 +15,9 @@ pub async fn fetch_text(path: &str) -> anyhow::Result<String> {
 
 pub async fn fetch_pending(token: &str, wait: bool) -> anyhow::Result<bool> {
     let path = if wait {
-        format!("/api/game/{token}/version?wait=1")
+        format!("/api/game/{token}?wait=1")
     } else {
-        format!("/api/game/{token}/version")
+        format!("/api/game/{token}")
     };
 
     let text = fetch_text(path.as_str()).await?;

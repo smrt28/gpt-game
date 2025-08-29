@@ -63,18 +63,18 @@ pub enum Status {
     Error,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-struct GGGResponse<Content: Serialize> {
-    status: Status,
-    content: Content,
+
+pub fn status_response(status: Status) -> String {
+    json!({
+            "status": status
+        }).to_string()
 }
 
-
-pub fn serialize_response_to_string<Content: Serialize>(status: Status, content: &Content) -> String {
+pub fn content_response<Content: Serialize>(status: Status, content: &Content) -> String {
     json!({
             "status": status,
             "content": content
-        }).to_string()
+    }).to_string()
 }
 
 impl Answer {
