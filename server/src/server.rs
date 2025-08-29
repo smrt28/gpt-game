@@ -158,7 +158,6 @@ async fn game_version(State(state): State<Shared>,
         let game = state.game_manager.get_game(&token)?;
         
         Ok(json!({
-            "version": game.get_version(),
             "status": if game.is_pending() { "pending" } else { "ok" },
             "pending": game.get_pending_question().is_some(),
             "state": game.deref(),
@@ -213,8 +212,6 @@ async fn ask(
     }
 
     Ok(json!({
-        "version": g.get_version(),
-        "text": question,
         "status": "ok"
     }).to_string())
 }

@@ -6,6 +6,8 @@ pub struct Status {
     pub status: String,
 }
 
+
+
 impl Status {
     pub fn should_repeat(&self) -> bool {
         self.status == "pending" || self.status == "timeout"

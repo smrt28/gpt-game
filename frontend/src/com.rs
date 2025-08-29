@@ -9,7 +9,7 @@ pub async fn fetch_text(path: &str) -> anyhow::Result<String> {
         return Err(anyhow::anyhow!("status[{}]: {}", path, res.status()));
     }
     let text = res.text().await?;
-    info!("res: {:?} {:?}", text, res.status());
+    //info!("res: {:?} {:?}", text, res.status());
     Ok(text)
 }
 

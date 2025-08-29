@@ -1,9 +1,22 @@
+
 use serde::{Serialize, Deserialize};
+use serde_json::json;
 use serde_with::skip_serializing_none;
+
+trait MessageId {
+    fn get_message_id(&self) -> &str;
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Verdict {
-    Yes, No, Unable, NotSet
+    #[serde(rename = "yes")]
+    Yes,
+    #[serde(rename = "no")]
+    No,
+    #[serde(rename = "unable")]
+    Unable,
+    #[serde(rename = "not_set")]
+    NotSet
 }
 
 #[derive(Serialize, Deserialize, Debug, )]
@@ -37,11 +50,32 @@ pub struct GameState {
     pub subject: Option<String>,
     pub records: Vec<Record>,
     pending_question: Option<Question>,
-    pub versions: u32,
     error: Option<GameError>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum Status {
+    #[serde(rename = "pending")]
+    Pending,
+    #[serde(rename = "ok")]
+    Ok,
+    #[serde(rename = "error")]
+    Error,
+}
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct GGGResponse<Content: Serialize> {
+    status: Status,
+    content: Content,
+}
+
+
+pub fn serialize_response_to_string<Content: Serialize>(status: Status, content: &Content) -> String {
+    json!({
+            "status": status,
+            "content": content
+        }).to_string()
+}
 
 impl Answer {
     pub fn new() -> Self {
@@ -67,13 +101,10 @@ impl Record {
     }
 }
 
+
 impl GameState {
     fn touch(&mut self) {
-        self.versions += 1;
-    }
 
-    pub fn get_version(&self) -> u32 {
-        self.versions
     }
 
     pub fn is_pending(&self) -> bool {

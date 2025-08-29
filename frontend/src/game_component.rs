@@ -147,7 +147,7 @@ pub fn Game() -> Html {
                     pooling = false;
                     match fetch_text(&format!("/api/game/{token}/version?wait=true")).await {
                         Ok(res) => {
-                            info!("res: {:?}", res);
+                            info!("got response: {:?}", res);
                             let Ok(status)
                                 = serde_json::from_str::<crate::game_response::Status>(&res) else {
                                 info!("failed to parse status response: {:?}", res);
@@ -166,6 +166,17 @@ pub fn Game() -> Html {
                         },
                     }
                 }
+
+
+                /*
+                match fetch_text(&format!("/api/game/{token}")).await {
+                    Ok(res) => {
+                        info!("res: {:?}", res);
+                    }
+                    Err(e) => {}
+                }
+               */
+
 
             });
             || ()
