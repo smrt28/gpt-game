@@ -17,6 +17,7 @@ pub fn sanitize_question(question: &String) -> Option<String> {
     Some(question.clone())
 }
 use std::time::Duration;
+use serde_json::json;
 
 #[derive(Default)]
 struct StateHelper {
@@ -73,5 +74,21 @@ impl GameManager {
         self.game_states.insert(token.clone(), GameState::default());
         self.helpers.insert(token.clone(), StateHelper::default());
         token
+    }
+
+    pub fn get_game_state(&self, token: &Token) -> String {
+        let game = self.game_states.get(token);
+        match game {
+            Some(g) => {
+                json!({
+                    "token": token.to_string(),
+                    "state": *g
+                }).to_string()
+                //serde_json::to_string(g)
+            },
+            None => "".to_string(),
+        }
+
+
     }
 }

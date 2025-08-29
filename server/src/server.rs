@@ -240,18 +240,7 @@ async fn new_game(State(state): State<Shared>,
 
 async fn game(State(state): State<Shared>, Path(token_str): Path<String>,
                   ConnectInfo(_addr): ConnectInfo<SocketAddr>) -> Result<String, AppError> {
-
     let token = Token::from_string(token_str.as_str())?;
     let game = state.game_manager.get_game(&token)?;
-
-    /*
-    let Ok(token) = Token::from_stringr(token_str.as_str()) else {
-        return ErStatus::InvalidToken.json();
-    };
-
-    let Some(_game) = state.game_manager.get_game(&token) else {
-        return ErStatus::InvalidToken.json();
-    };
-*/
     Ok(serde_json::to_string(game.deref())?)
 }
