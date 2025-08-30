@@ -17,7 +17,6 @@ use tracing_subscriber::EnvFilter;
 
 #[macro_use]
 mod macros;
-mod token;
 mod game_manager;
 mod app_error;
 mod client_pool;

@@ -2,7 +2,6 @@
 #![allow(unused_variables)]
 #![allow(unused_imports)]
 
-mod chat;
 mod ask_prompt_component;
 mod com;
 mod www_error;
@@ -17,10 +16,6 @@ use yew::prelude::*;
 use yew_router::prelude::*;
 use yew_router::hooks::use_navigator;
 use log::info;
-//use gloo_net::http::Request;
-//use crate::c1::*;
-//use crate::chat::*;
-
 use gloo_storage::{LocalStorage, Storage};
 use wasm_bindgen::JsValue;
 use anyhow::{Context, Result};
@@ -32,7 +27,6 @@ struct SoftState {
     n: UseStateHandle<i32>,
     error_message: UseStateHandle<String>,
 }
-
 
 #[derive(Clone, Routable, PartialEq)]
 enum Route {
@@ -46,7 +40,6 @@ enum Route {
     #[at("/404")]
     NotFound,
 }
-
 
 #[derive(Properties, PartialEq)]
 pub struct Props {

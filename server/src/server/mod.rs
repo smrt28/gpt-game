@@ -3,10 +3,10 @@
 
 use axum::{
     extract::ConnectInfo,
+    extract::Path,
+    extract::State,
     routing::get,
     Router,
-    extract::State,
-    extract::Path,
 };
 use anyhow::{Context, Error, Result};
 use std::net::SocketAddr;
@@ -25,27 +25,26 @@ use axum::routing::post;
 use clap::builder::Str;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use crate::{gpt, token, GptClientFactory};
+use crate::{gpt, GptClientFactory};
 use crate::client_pool::*;
 use crate::gpt::*;
 use shared::shared_error::*;
 use tokio::time::timeout;
 use tower_http::services::ServeDir;
-use tower_http::trace::{TraceLayer, DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, DefaultOnFailure};
+use tower_http::trace::{DefaultMakeSpan, DefaultOnFailure, DefaultOnRequest, DefaultOnResponse, TraceLayer};
 use tracing::{info, Level};
 use tracing_subscriber::fmt::layer;
 use tower_http::classify::{ServerErrorsAsFailures, SharedClassifier};
-use tower::{ServiceBuilder};
+use tower::ServiceBuilder;
 use shared::messages::{content_response, status_response, GameError, Status, Verdict};
-use crate::token::*;
+use shared::token::*;
 use crate::game_manager::*;
 use crate::app_error::*;
-use crate::token::TokenType::Answer;
+use shared::token::TokenType::Answer;
 use axum::extract::rejection::QueryRejection;
-
-
 use serde::de::{self, Deserializer};
-//use log::info;
+use shared::token;
+
 
 fn de_opt_bool<'de, D>(deserializer: D) -> Result<i32, D::Error>
 where
@@ -161,10 +160,8 @@ async fn game(State(state): State<Shared>,
 ) -> Result<String, AppError> {
     info!("game");
     let token = Token::from_string(token_str.as_str())?;
-    let pending = state.game_manager.get_game(&token)?.get_pending_question().is_some();
-
+    let pending = state.game_manager.is_pending(&token)?;
     info!("pending={}", pending);
-
     let query_val = query.wait;
 
     if query_val == -1 {
@@ -180,10 +177,10 @@ async fn game(State(state): State<Shared>,
         }
         info!("ready");
     }
-    info!("responding...");
-    let game = state.game_manager.get_game(&token)?;
-    info!("responding...2");
-    Ok(content_response(if pending {Status::Pending} else {Status::Ok}, game.deref()))
+
+    let game = state.game_manager.game_to_value(&token)?;
+    let status = if pending {Status::Pending} else {Status::Ok};
+    Ok(content_response(status, &game))
 }
 
 
@@ -196,28 +193,18 @@ async fn ask(
     info!("ggg a");
     let token = Token::from_string(token_str.as_str())?;
 
-    info!("ggg b");
     let Some(question) = sanitize_question(&String::from_utf8_lossy(&body).to_string()) else {
         return Err(AppError::InvalidToken);
     };
 
-    info!("ggg c");
-    let mut g = state.game_manager.get_game(&token)?;
-    info!("ggg 1");
-    if !g.set_pending_question(&question) {
-        info!("pending question");
-        return Err(AppError::Pending);
-    }
-    info!("ggg 2");
+    state.game_manager.set_pending_question(&token, &question)?;
+
     let mut gpt_client = state.client_factory.pop();
     gpt_client.update().await.unwrap();
-
-    info!("ggg 3");
 
     let mut params = QuestionParams::default();
     params.set_instructions("Short minimalistic answer");
 
-    drop(g);
     info!("got client, asking: {}", question);
     let result = gpt_client.client().ask(question.as_str(), &params).await;
 
@@ -229,16 +216,13 @@ async fn ask(
             answer.verdict = Some(Verdict::NotSet);
             answer.comment = gpt_answer.to_string();
             info!("ggg 4");
-            let mut g = state.game_manager.get_game(&token)?;
-            g.answer_pending_question(&answer);
+            state.game_manager.answer_pending_question(&token, &answer)?;
         }
         Err(err) => {
             info!("answer received; ERR");
-            let mut g = state.game_manager.get_game(&token)?;
-           g.handle_error_response(GameError::GPTError(err.to_string()));
+            state.game_manager.handle_error_response(&token, GameError::GPTError(err.to_string()))?;
         }
     }
-    info!("ggg 3");
     Ok(status_response(Status::Ok))
 }
 

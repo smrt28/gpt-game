@@ -1,8 +1,9 @@
 #![allow(dead_code)]
 
 use std::cell::RefCell;
+use std::ops::Deref;
 use std::sync::Arc;
-use crate::token::*;
+use shared::token::*;
 use dashmap::DashMap;
 use dashmap::mapref::one::RefMut;
 use tracing_subscriber::prelude::__tracing_subscriber_Layer;
@@ -38,7 +39,7 @@ impl GameManager {
         }
     }
 
-    pub fn get_game(&self, token: &Token) -> Result<RefMut<'_, Token, GameState>, AppError> {
+    fn get_game(&self, token: &Token) -> Result<RefMut<'_, Token, GameState>, AppError> {
         match self.game_states.get_mut(token) {
             Some(rv) => Ok(rv),
             None => Err(AppError::GameNotFound),
@@ -88,9 +89,43 @@ impl GameManager {
                     "token": token.to_string(),
                     "state": *g
                 }).to_string()
-                //serde_json::to_string(g)
             },
             None => "".to_string(),
         }
+    }
+
+    pub fn set_pending_question(&self, token: &Token, question: &String) -> Result<(), AppError> {
+        let mut g = self.get_game(token)?;
+        if g.pending_question.is_some() {
+            return Err(AppError::Pending);
+        }
+        g.pending_question = Some(Question{text: question.clone()});
+        Ok(())
+    }
+
+    pub fn answer_pending_question(&self, token: &Token, answer: &Answer) -> Result<(), AppError> {
+        let mut g = self.get_game(token)?;
+        if g.pending_question.is_none() {
+            return Ok(());
+        }
+        let mut record = Record::new(g.pending_question.take().unwrap().text);
+        record.set_answer(answer);
+        g.add_record(record);
+        Ok(())
+    }
+
+    pub fn handle_error_response(&self, token: &Token, error: GameError) -> Result<(), AppError> {
+        let mut g = self.get_game(token)?;
+        g.error = Some(error);
+        g.pending_question = None;
+        Ok(())
+    }
+
+    pub fn is_pending(&self, token: &Token) -> Result<bool, AppError> {
+        Ok(self.get_game(token)?.pending_question.is_some())
+    }
+
+    pub fn game_to_value(&self, token: &Token) -> Result<serde_json::Value, AppError> {
+        Ok(serde_json::to_value(self.get_game(token)?.deref())?)
     }
 }
