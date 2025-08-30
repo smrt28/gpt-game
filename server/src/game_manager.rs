@@ -59,7 +59,7 @@ impl GameManager {
 
     pub async fn wait_for_answer(&self, token: &Token, t: Duration ) -> Result<(), AppError> {
         info!("waiting for answer BEGIN");
-        let res =match time::timeout(t, self.get_notifier(token)?.notified()).await {
+        let res = match time::timeout(t, self.get_notifier(token)?.notified()).await {
             Ok(_) => Ok(()),
             Err(_) => Err(AppError::Timeout),
         };

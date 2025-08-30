@@ -45,28 +45,6 @@ pub fn Game() -> Html {
                     info!("error: {:?}", e);
                     return;
                 };
-
-                loop {
-                    match fetch_text(&format!("/api/game/{token}?wait=1&quiet=1")).await {
-                        Ok(res) => {
-                            info!("got response: {:?}", res);
-                            match ServerResponse::<GameState>::from_response(res.as_str()) {
-                                Ok(server_response) => {
-                                    match server_response.status {
-                                        Status::Ok => { return; }
-                                        Status::Error => { return; }
-                                        Status::Pending => {}
-                                    }
-                                }
-                                Err(e) => { return; }
-                            }
-                        },
-                        Err(e) => {
-                            log::error!("fetch /api/game failed: {e:?}");
-                            return;
-                        },
-                    }
-                }
             });
         })
     };
@@ -77,8 +55,35 @@ pub fn Game() -> Html {
         let navigator = navigator.clone();
         move |_| {
             spawn_local(async move {
+
+                loop {
+                    info!("polling...");
+                    match fetch_text(&format!("/api/game/{token}?wait=1&quiet=1")).await {
+                        Ok(res) => {
+                            info!("got response: {:?}", res);
+                            match ServerResponse::<GameState>::from_response(res.as_str()) {
+                                Ok(server_response) => {
+                                    match server_response.status {
+                                        Status::Ok => { break; }
+                                        Status::Error => { break; }
+                                        Status::Pending => {}
+                                    }
+                                }
+                                Err(e) => { break; }
+                            }
+                        },
+                        Err(e) => {
+                            log::error!("fetch /api/game failed: {e:?}");
+                            break;
+                        },
+                    }
+                }
+
+                info!("xxxxxxxxxxxx");
                 match fetch_text(&format!("/api/game/{token}")).await {
+
                     Ok(text) => {
+                        info!("xxxxxxxxxxxx");
                         if let Ok(resp) = ServerResponse::<GameState>::from_response(text.as_str()) {
                             if resp.status == Status::Error {
                                 navigator.push(&Route::Home);

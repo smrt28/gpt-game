@@ -202,14 +202,14 @@ async fn ask(
     Path(token_str): Path<String>,
     body: Bytes
 ) -> Result<String, AppError> {
-    info!("ggg a");
     let token = Token::from_string(token_str.as_str())?;
 
     let Some(question) = sanitize_question(&String::from_utf8_lossy(&body).to_string()) else {
         return Err(AppError::InvalidToken);
     };
 
-    state.game_manager.set_pending_question(&token, &question)?;
+
+
 
     let mut gpt_client = state.client_factory.pop();
     gpt_client.update().await.unwrap();
@@ -217,23 +217,31 @@ async fn ask(
     let mut params = QuestionParams::default();
     params.set_instructions("Short minimalistic answer");
 
-    info!("got client, asking: {}", question);
-    let result = gpt_client.client().ask(question.as_str(), &params).await;
-
-
-    match result {
-        Ok(gpt_answer) => {
-            info!("answer received; OK");
-            let mut answer = shared::messages::Answer::new();
-            answer.verdict = Some(Verdict::NotSet);
-            answer.comment = gpt_answer.to_string();
-            state.game_manager.answer_pending_question(&token, &answer)?;
+    // !!! ASK !!!
+    tokio::spawn(async move {
+        if let Err(e) = state.game_manager.set_pending_question(&token, &question) {
+            info!("set pending question failed: {}", e);
+            return;
         }
-        Err(err) => {
-            info!("answer received; ERR");
-            state.game_manager.handle_error_response(&token, GameError::GPTError(err.to_string()))?;
+        info!("got client, asking: {}", question);
+        let result = gpt_client.client().ask(question.as_str(), &params).await;
+
+        match result {
+            Ok(gpt_answer) => {
+                info!("answer received; OK");
+                let mut answer = shared::messages::Answer::new();
+                answer.verdict = Some(Verdict::NotSet);
+                answer.comment = gpt_answer.to_string();
+                let _ = state.game_manager.answer_pending_question(&token, &answer);
+            }
+            Err(err) => {
+                info!("answer received; ERR");
+                let _ = state.game_manager.handle_error_response(&token, GameError::GPTError(err.to_string()));
+            }
         }
-    }
+    });
+
+    // -----------
     Ok(status_response(Status::Ok))
 }
 
