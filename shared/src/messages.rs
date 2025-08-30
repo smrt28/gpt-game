@@ -2,12 +2,12 @@
 use serde::{Serialize, Deserialize};
 use serde_json::json;
 use serde_with::skip_serializing_none;
-
+/*
 trait MessageId {
     fn get_message_id(&self) -> &str;
 }
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
+*/
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum Verdict {
     #[serde(rename = "yes")]
     Yes,
@@ -19,32 +19,32 @@ pub enum Verdict {
     NotSet
 }
 
-#[derive(Serialize, Deserialize, Debug, )]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Question {
     pub text: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Answer {
     pub verdict: Option<Verdict>,
     pub comment: Option<String>,
     timestamp: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, )]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Record {
     pub questions: Question,
     pub answers: Option<Answer>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub enum GameError {
     #[serde(rename = "error")]
     GPTError(String),
 }
 
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, )]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[derive(Default)]
 pub struct GameState {
     pub subject: Option<String>,
@@ -53,7 +53,7 @@ pub struct GameState {
     pub error: Option<GameError>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum Status {
     #[serde(rename = "pending")]
     Pending,

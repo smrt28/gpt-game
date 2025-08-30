@@ -44,7 +44,7 @@ use shared::token::TokenType::Answer;
 use axum::extract::rejection::QueryRejection;
 use serde::de::{self, Deserializer};
 use shared::token;
-
+use crate::token_gen::TokenGen;
 
 fn de_opt_bool<'de, D>(deserializer: D) -> Result<i32, D::Error>
 where
@@ -66,6 +66,8 @@ where
 struct WaitParam {
     #[serde(default, deserialize_with = "de_opt_bool")]
     wait: i32,
+    #[serde(default, deserialize_with = "de_opt_bool")]
+    short: i32,
 }
 
 struct AppState {

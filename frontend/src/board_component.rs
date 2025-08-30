@@ -10,10 +10,13 @@ use crate::ask_prompt_component::*;
 use std::rc::Rc;
 use web_sys::console::info_1;
 use yew::prelude::*;
+use shared::messages::GameState;
+use crate::game_component::Game;
 
 #[derive(Clone, PartialEq, Default)]
 pub struct BoardState {
-    pending: Option<bool>
+    pending: Option<bool>,
+    game: GameState,
 }
 
 pub enum ServerErrorDetail {
@@ -23,6 +26,7 @@ pub enum ServerErrorDetail {
 pub enum Act {
     SetPending(Option<bool>),
     ServerError(ServerErrorDetail),
+    Update(GameState),
 }
 
 impl Reducible for BoardState {
@@ -30,12 +34,20 @@ impl Reducible for BoardState {
     fn reduce(self: Rc<Self>, act: Act) -> Rc<Self> {
         info!("BoardState::reduce");
         match act {
-            Act::SetPending(p) => Rc::new(BoardState { pending: p }),
+            Act::SetPending(p) => Rc::new(BoardState {
+                pending: p,
+                game: self.game.clone(),
+            }),
             Act::ServerError(d) => {
                 let mut res = (*self).clone();
                 res.pending = Some(false);
                 Rc::new(res)
             },
+            Act::Update(g) => {
+                info!("BoardState::reduce: update");
+                let mut res = (*self).clone();
+                Rc::new(res)
+            }
         }
     }
 }
