@@ -1,4 +1,4 @@
-
+#![allow(dead_code, unused_imports)]
 use serde::{Serialize, Deserialize};
 use serde_json::json;
 use serde_with::skip_serializing_none;
@@ -69,7 +69,26 @@ pub enum Status {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct ServerResponse<Content: Serialize> {
     pub status: Status,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub content: Option<Content>,
+}
+
+
+impl <Content: DeserializeOwned + Serialize> ServerResponse::<Content> {
+    pub fn from_response(response: &str) -> Result<Self, anyhow::Error> {
+        Ok(serde_json::from_str::<ServerResponse<Content>>(response)?)
+    }
+
+    pub fn to_response(&self) -> Result<String, anyhow::Error> {
+        Ok(serde_json::to_string(self)?)
+    }
+
+    pub fn from_status(status: Status) -> Self {
+        Self {
+            status: status,
+            content: None,
+        }
+    }
 }
 
 

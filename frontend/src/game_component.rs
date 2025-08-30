@@ -1,3 +1,4 @@
+use std::slice::SliceIndex;
 use gloo_storage::{LocalStorage, Storage};
 use log::info;
 use yew::{function_component, html, use_effect, use_effect_with, use_reducer, use_state, Callback, Html, Properties};
@@ -6,19 +7,15 @@ use crate::com::{fetch_pending, fetch_text, send_question};
 use crate::ask_prompt_component::*;
 use crate::board_component::*;
 use wasm_bindgen_futures::spawn_local;
-use shared::messages::{response_to_content, GameState};
+use shared::messages::{response_to_content, GameState, ServerResponse, Status};
 
 #[function_component]
 pub fn Game() -> Html {
-
-
-    //props!{board_component::Props}
     let navigator = use_navigator_expect();
     let debug = use_state(|| { String::new() });
-    //let board_props = use_state(|| board_component::Props {
-    //    pending: None
-    //});
-    let question_in_air = use_state(|| { false });
+    let version = use_state(|| { 0 });
+    let pending = use_state(|| { false });
+
 
     let token: String = match LocalStorage::get("token").ok() {
         Some(token) => token,
@@ -28,100 +25,86 @@ pub fn Game() -> Html {
         }
     };
 
-
     let board = use_reducer(BoardState::default);
-
     let on_send = {
         let token = token.clone();
-        let board = board.clone();
-        let debug = debug.clone();
+        let version = version.clone();
+        let pending = pending.clone();
         Callback::from(move |text: String| {
-            let board = board.clone();
+            let version = version.clone();
             let token = token.clone();
-            let debug = debug.clone();
+            let pending = pending.clone();
             spawn_local(async move {
-                board.dispatch(Act::SetPending(Some(true)));
-                let res = send_question(&token, &text).await.unwrap();
-                debug.set(res);
+                pending.set(true);
+                let _guard = scopeguard::guard((), |_| {
+                    pending.set(false);
+                    version.set(1 + *version);
+                });
+
+                if let Err(e) = send_question(&token, &text).await {
+                    info!("error: {:?}", e);
+                    return;
+                };
+
+                loop {
+                    match fetch_text(&format!("/api/game/{token}?wait=1&quiet=1")).await {
+                        Ok(res) => {
+                            info!("got response: {:?}", res);
+                            match ServerResponse::<GameState>::from_response(res.as_str()) {
+                                Ok(server_response) => {
+                                    match server_response.status {
+                                        Status::Ok => { return; }
+                                        Status::Error => { return; }
+                                        Status::Pending => {}
+                                    }
+                                }
+                                Err(e) => { return; }
+                            }
+                        },
+                        Err(e) => {
+                            log::error!("fetch /api/game failed: {e:?}");
+                            return;
+                        },
+                    }
+                }
             });
         })
     };
 
-    {
-        let debug = debug.clone();
+    use_effect_with(version, {
         let token = token.clone();
         let board = board.clone();
-        use_effect(move || {
+        let navigator = navigator.clone();
+        move |_| {
             spawn_local(async move {
-                let mut pooling = true;
-                while pooling {
-                    pooling = false;
-                    match fetch_text(&format!("/api/game/{token}?wait=true")).await {
-                        Ok(res) => {
-                            info!("got response: {:?}", res);
-                            let Ok(status)
-                                = serde_json::from_str::<crate::game_response::Status>(&res) else {
-                                info!("failed to parse status response: {:?}", res);
-                                navigator.push(&Route::Home);
-                                return;
-                            };
-
-                            info!("status: {}", status.status);
-                            if status.status == "error" {
-                                navigator.push(&Route::Home);
-                                return;
-                            }
-
-
-
-                            if let Err(e) = response_to_content::<GameState>(&res) {
-                                info!("error: {:?}", e);
-                            }
-
-                            /*
-                            let Ok(value) = serde_json::from_str::<GameState>(&res) else {
-                                info!("failed to parse game response: {:?}", res);
-                                navigator.push(&Route::Home);
-                                return;
-                            };
-
-                            board.dispatch(Act::Update(value));
-
-                             */
-
-                            if status.should_repeat() {
-                                pooling = true;
-                            }
-                        },
-                        Err(e) => {
-                            navigator.push(&Route::Home);
-                            log::error!("fetch /api/game failed: {e:?}");
-                        },
-                    }
-                }
-
-
-                /*
                 match fetch_text(&format!("/api/game/{token}")).await {
-                    Ok(res) => {
-                        info!("res: {:?}", res);
+                    Ok(text) => {
+                        if let Ok(resp) = ServerResponse::<GameState>::from_response(text.as_str()) {
+                            if resp.status == Status::Error {
+                                navigator.push(&Route::Home);
+                            }
+                            if let Some(content) = resp.content {
+                                board.dispatch(Act::Update(content));
+                            }
+                        } else {
+                            info!("failed to parse game response");
+                        }
                     }
-                    Err(e) => {}
+                    Err(e) => info!("fetch error: {e:?}"),
                 }
-               */
-
-
+                info!("exiting polling loop");
             });
             || ()
-        });
-    }
+        }
+    });
 
-    
+
     html! {
         <>
         <Board board={board.clone()}/>
         <AskPrompt prompt={"Make your guess..."}
             on_send={on_send}
+            disabled={*pending}
         />
         <pre>{"token:"}{token.to_string()}</pre>
         <pre>{"Debug:"}{debug.to_string()}</pre>

@@ -44,9 +44,13 @@ impl Reducible for BoardState {
                 Rc::new(res)
             },
             Act::Update(g) => {
+                self
+                /*
                 info!("BoardState::reduce: update");
-                let mut res = (*self).clone();
+                let res = (*self).clone();
                 Rc::new(res)
+                
+                 */
             }
         }
     }

@@ -36,7 +36,7 @@ use tracing::{info, Level};
 use tracing_subscriber::fmt::layer;
 use tower_http::classify::{ServerErrorsAsFailures, SharedClassifier};
 use tower::ServiceBuilder;
-use shared::messages::{content_to_response, status_response, GameError, Status, Verdict};
+use shared::messages::{content_to_response, status_response, GameError, GameState, ServerResponse, Status, Verdict};
 use shared::token::*;
 use crate::game_manager::*;
 use crate::app_error::*;
@@ -67,7 +67,16 @@ struct WaitParam {
     #[serde(default, deserialize_with = "de_opt_bool")]
     wait: i32,
     #[serde(default, deserialize_with = "de_opt_bool")]
-    short: i32,
+    quiet: i32,
+}
+
+impl WaitParam {
+    fn check(&self) -> Result<(), AppError> {
+        if self.wait == -1 || self.quiet == -1 {
+            return Err(AppError::InvalidInput);
+        }
+        Ok(())
+    }
 }
 
 struct AppState {
@@ -161,16 +170,11 @@ async fn game(State(state): State<Shared>,
 
 ) -> Result<String, AppError> {
     info!("game");
+    query.check()?;
     let token = Token::from_string(token_str.as_str())?;
     let pending = state.game_manager.is_pending(&token)?;
-    info!("pending={}", pending);
-    let query_val = query.wait;
 
-    if query_val == -1 {
-        return Err(AppError::InvalidInput);
-    }
-
-    if pending && query_val == 1 {
+    if pending && query.wait == 1 {
         info!("waiting");
         let res = state.game_manager.wait_for_answer(&token, Duration::new(5, 0)).await;
         if res.is_err() {
@@ -180,8 +184,14 @@ async fn game(State(state): State<Shared>,
         info!("ready");
     }
 
-    let game = state.game_manager.game_to_value(&token)?;
     let status = if pending {Status::Pending} else {Status::Ok};
+
+    if query.quiet == 1 {
+        let game_state = ServerResponse::<GameState>::from_status(status);
+        return Ok(game_state.to_response()?);
+    }
+
+    let game = state.game_manager.game_to_value(&token)?;
     Ok(content_to_response(status, &game))
 }
 
@@ -217,7 +227,6 @@ async fn ask(
             let mut answer = shared::messages::Answer::new();
             answer.verdict = Some(Verdict::NotSet);
             answer.comment = gpt_answer.to_string();
-            info!("ggg 4");
             state.game_manager.answer_pending_question(&token, &answer)?;
         }
         Err(err) => {
