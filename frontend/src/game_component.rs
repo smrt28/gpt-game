@@ -6,7 +6,7 @@ use crate::com::{fetch_pending, fetch_text, send_question};
 use crate::ask_prompt_component::*;
 use crate::board_component::*;
 use wasm_bindgen_futures::spawn_local;
-use shared::messages::GameState;
+use shared::messages::{response_to_content, GameState};
 
 #[function_component]
 pub fn Game() -> Html {
@@ -72,12 +72,22 @@ pub fn Game() -> Html {
                                 return;
                             }
 
+
+
+                            if let Err(e) = response_to_content::<GameState>(&res) {
+                                info!("error: {:?}", e);
+                            }
+
+                            /*
                             let Ok(value) = serde_json::from_str::<GameState>(&res) else {
+                                info!("failed to parse game response: {:?}", res);
                                 navigator.push(&Route::Home);
                                 return;
                             };
 
                             board.dispatch(Act::Update(value));
+
+                             */
 
                             if status.should_repeat() {
                                 pooling = true;

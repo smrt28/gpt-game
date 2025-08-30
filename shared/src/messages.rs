@@ -2,6 +2,8 @@
 use serde::{Serialize, Deserialize};
 use serde_json::json;
 use serde_with::skip_serializing_none;
+use log::{error, info};
+use serde::de::DeserializeOwned;
 /*
 trait MessageId {
     fn get_message_id(&self) -> &str;
@@ -64,17 +66,42 @@ pub enum Status {
 }
 
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct ServerResponse<Content: Serialize> {
+    pub status: Status,
+    pub content: Option<Content>,
+}
+
+
+pub fn response_to_content<Content>(res: &str) -> anyhow::Result<Content>
+where
+    Content: DeserializeOwned + Serialize,
+{
+    let r: ServerResponse<Content> = serde_json::from_str(res)?;
+    r.content.ok_or_else(|| anyhow::anyhow!("missing content"))
+}
+
+pub fn content_to_response<Content: Serialize>(status: Status, content: Content) -> String {
+    let rv = ServerResponse::<Content> {
+        status: status.clone(),
+        content: Some(content)
+    };
+
+    if let Ok(rv) = serde_json::to_string(&rv) {
+        return rv;
+    };
+
+    error!("failed to serialize response");
+    json!({
+            "status": "error",
+    }).to_string()
+}
+
+
 pub fn status_response(status: Status) -> String {
     json!({
             "status": status
         }).to_string()
-}
-
-pub fn content_response<Content: Serialize>(status: Status, content: &Content) -> String {
-    json!({
-            "status": status,
-            "content": content
-    }).to_string()
 }
 
 impl Answer {

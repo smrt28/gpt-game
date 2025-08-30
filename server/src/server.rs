@@ -36,7 +36,7 @@ use tracing::{info, Level};
 use tracing_subscriber::fmt::layer;
 use tower_http::classify::{ServerErrorsAsFailures, SharedClassifier};
 use tower::ServiceBuilder;
-use shared::messages::{content_response, status_response, GameError, Status, Verdict};
+use shared::messages::{content_to_response, status_response, GameError, Status, Verdict};
 use shared::token::*;
 use crate::game_manager::*;
 use crate::app_error::*;
@@ -182,7 +182,7 @@ async fn game(State(state): State<Shared>,
 
     let game = state.game_manager.game_to_value(&token)?;
     let status = if pending {Status::Pending} else {Status::Ok};
-    Ok(content_response(status, &game))
+    Ok(content_to_response(status, &game))
 }
 
 

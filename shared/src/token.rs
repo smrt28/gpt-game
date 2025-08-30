@@ -10,7 +10,6 @@ pub enum TokenType {
     Game,
 }
 
-
 impl TokenType {
     pub fn leading_byte(&self) -> u8 {
         match self {
