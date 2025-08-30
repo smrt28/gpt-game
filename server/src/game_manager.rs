@@ -98,6 +98,7 @@ impl GameManager {
     pub fn set_pending_question(&self, token: &Token, question: &String) -> Result<(), AppError> {
         let mut g = self.get_game(token)?;
         if g.pending_question.is_some() {
+            info!("Can't ask while previous question is pending.");
             return Err(AppError::Pending);
         }
         g.pending_question = Some(Question{text: question.clone()});

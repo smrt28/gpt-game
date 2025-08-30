@@ -1,3 +1,5 @@
+use std::cell::Cell;
+use std::rc::Rc;
 use std::slice::SliceIndex;
 use gloo_storage::{LocalStorage, Storage};
 use log::info;
@@ -12,7 +14,6 @@ use shared::messages::{response_to_content, GameState, ServerResponse, Status};
 #[function_component]
 pub fn Game() -> Html {
     let navigator = use_navigator_expect();
-    let debug = use_state(|| { String::new() });
     let version = use_state(|| { 0 });
     let pending = use_state(|| { false });
 
@@ -36,57 +37,77 @@ pub fn Game() -> Html {
             let pending = pending.clone();
             spawn_local(async move {
                 pending.set(true);
-                let _guard = scopeguard::guard((), |_| {
-                    pending.set(false);
-                    version.set(1 + *version);
-                });
-
                 if let Err(e) = send_question(&token, &text).await {
                     info!("error: {:?}", e);
                     return;
                 };
+                version.set(1 + *version);
             });
         })
     };
 
-    use_effect_with(version, {
+
+    use_effect_with(*version, {
         let token = token.clone();
         let board = board.clone();
         let navigator = navigator.clone();
-        move |_| {
-            spawn_local(async move {
+        let pending = pending.clone();
+        let ver = version.clone();
 
-                loop {
-                    info!("polling...");
-                    match fetch_text(&format!("/api/game/{token}?wait=1&quiet=1")).await {
-                        Ok(res) => {
-                            info!("got response: {:?}", res);
-                            match ServerResponse::<GameState>::from_response(res.as_str()) {
-                                Ok(server_response) => {
-                                    match server_response.status {
-                                        Status::Ok => { break; }
-                                        Status::Error => { break; }
-                                        Status::Pending => {}
+        move |curr_ver: &i32| {
+            let curr = *curr_ver;
+            let cancelled = Rc::new(Cell::new(false));
+
+            let cancel_for_task = cancelled.clone();
+            let cancel_for_cleanup = cancelled.clone();
+            spawn_local(async move {
+                if curr > 0 {
+                    let guard = scopeguard::guard((), |_| {
+                        pending.set(false);
+                    });
+
+                    loop {
+                        if cancel_for_task.get() { break; }
+                        info!("polling...{}", curr);
+                        match fetch_text(&format!("/api/game/{token}?wait=1&quiet=1")).await {
+                            Ok(res) => {
+                                info!("got response: {:?}", res);
+                                match ServerResponse::<GameState>::from_response(res.as_str()) {
+                                    Ok(server_response) => {
+                                        match server_response.status {
+                                            Status::Ok => {
+                                                break;
+                                            }
+                                            Status::Error => { break; }
+                                            Status::Pending => {}
+                                        }
                                     }
+                                    Err(e) => { break; }
                                 }
-                                Err(e) => { break; }
-                            }
-                        },
-                        Err(e) => {
-                            log::error!("fetch /api/game failed: {e:?}");
-                            break;
-                        },
+                            },
+                            Err(e) => {
+                                log::error!("fetch /api/game failed: {e:?}");
+                                break;
+                            },
+                        }
                     }
+                } else {
+                    info!("initial fetch");
                 }
 
-                info!("xxxxxxxxxxxx");
-                match fetch_text(&format!("/api/game/{token}")).await {
+                if cancel_for_task.get() {
+                    return;
+                }
 
+                match fetch_text(&format!("/api/game/{token}")).await {
                     Ok(text) => {
-                        info!("xxxxxxxxxxxx");
                         if let Ok(resp) = ServerResponse::<GameState>::from_response(text.as_str()) {
                             if resp.status == Status::Error {
                                 navigator.push(&Route::Home);
+                            }
+                            if resp.status == Status::Pending {
+                                pending.set(true);
+                                ver.set(1 + curr);
                             }
                             if let Some(content) = resp.content {
                                 board.dispatch(Act::Update(content));
@@ -99,7 +120,8 @@ pub fn Game() -> Html {
                 }
                 info!("exiting polling loop");
             });
-            || ()
+
+            move || cancel_for_cleanup.set(true)
         }
     });
 
@@ -112,40 +134,8 @@ pub fn Game() -> Html {
             disabled={*pending}
         />
         <pre>{"token:"}{token.to_string()}</pre>
-        <pre>{"Debug:"}{debug.to_string()}</pre>
         </>
     }
 
 
 }
-
-
-/*
-
-use std::rc::Rc;
-use yew::prelude::*;
-
-#[derive(Clone, PartialEq)]
-struct BoardState { pending: Option<bool> }
-
-enum Act { SetPending(Option<bool>) }
-
-impl Reducible for BoardState {
-    type Action = Act;
-    fn reduce(self: Rc<Self>, act: Act) -> Rc<Self> {
-        match act {
-            Act::SetPending(p) => Rc::new(BoardState { pending: p }),
-        }
-    }
-}
-
-let board = use_reducer(|| BoardState { pending: None });
-
-// update (cheap)
-board.dispatch(Act::SetPending(Some(false)));
-
-// read
-html! { <Board pending={board.pending} /> } // or clone if needed
-
-
- */

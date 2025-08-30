@@ -59,9 +59,6 @@ where
     })
 }
 
-
-
-
 #[derive(Deserialize)]
 struct WaitParam {
     #[serde(default, deserialize_with = "de_opt_bool")]
@@ -200,7 +197,7 @@ async fn ask(
     State(state): State<Shared>,
     ConnectInfo(_addr): ConnectInfo<SocketAddr>,
     Path(token_str): Path<String>,
-    body: Bytes
+    body: Bytes,
 ) -> Result<String, AppError> {
     let token = Token::from_string(token_str.as_str())?;
 
@@ -208,21 +205,15 @@ async fn ask(
         return Err(AppError::InvalidToken);
     };
 
-
-
-
     let mut gpt_client = state.client_factory.pop();
     gpt_client.update().await.unwrap();
 
     let mut params = QuestionParams::default();
     params.set_instructions("Short minimalistic answer");
+    state.game_manager.set_pending_question(&token, &question)?;
 
     // !!! ASK !!!
     tokio::spawn(async move {
-        if let Err(e) = state.game_manager.set_pending_question(&token, &question) {
-            info!("set pending question failed: {}", e);
-            return;
-        }
         info!("got client, asking: {}", question);
         let result = gpt_client.client().ask(question.as_str(), &params).await;
 
@@ -236,7 +227,8 @@ async fn ask(
             }
             Err(err) => {
                 info!("answer received; ERR");
-                let _ = state.game_manager.handle_error_response(&token, GameError::GPTError(err.to_string()));
+                let _ = state.game_manager.handle_error_response(&token,
+                                                                 GameError::GPTError(err.to_string()));
             }
         }
     });
