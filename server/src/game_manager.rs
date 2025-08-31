@@ -131,4 +131,16 @@ impl GameManager {
     pub fn get_game_state(&self, token: &Token) -> Result<GameState, AppError> {
         Ok(self.get_game(token)?.deref().clone())
     }
+
+    pub fn finish_game(&self, token: &Token) -> Result<(), AppError> {
+        self.get_game(token)?.game_ended = true;
+        Ok(())
+    }
+
+    pub fn game_ended(&self, token: &Token) -> bool {
+        if let Ok(g) = self.get_game(token) {
+            return g.game_ended;
+        }
+        true
+    }
 }

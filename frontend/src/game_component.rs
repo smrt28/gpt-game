@@ -131,14 +131,35 @@ pub fn Game() -> Html {
     });
 
 
+    let navigator = navigator.clone();
+    let v2 = version.clone();
+    let on_new_game = {
+        let v2 = v2.clone();
+        Callback::from(move |_| {
+            let v2 = v2.clone();
+            let navigator = navigator.clone();
+            spawn_local(async move {
+                match fetch_text("/api/game/new").await {
+                    Ok(token) => {
+                        v2.set(*v2 + 1);
+                        info!("new token: {token}");
+                        LocalStorage::set("token", &token).ok();
+                        navigator.push(&Route::Game);
+                    }
+                    Err(_) => navigator.push(&Route::Error),
+                }
+            });
+        })
+    };
+
+
     html! {
         <>
         <h1>{ "Guess Who" }</h1>
 
-        <Board board={board.clone()}/>
-        <div class="note">
-        {"Type: \"I'M LOSER\" and I’ll reveal my identity and pick a new one. " }
-        </div>
+        <Board board={board.clone()}
+            on_new_game={on_new_game}/>
+
         <AskPrompt prompt={"I'm someone or something, guess who I'm. Your question is:"}
             on_send={on_send}
             disabled={*pending}

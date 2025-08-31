@@ -5,6 +5,7 @@ use serde_with::skip_serializing_none;
 use log::{error, info};
 use serde::de::DeserializeOwned;
 use time::OffsetDateTime;
+
 //use serde_with::{serde_as, TimestampMilliSeconds}; // or use Rfc3339
 /*
 trait MessageId {
@@ -47,7 +48,6 @@ pub struct Record {
 
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[derive(Default)]
 pub struct GameState {
     #[serde(default)]
     pub subject: Option<String>,
@@ -57,10 +57,27 @@ pub struct GameState {
     pub pending_question: Option<Question>,
     #[serde(default)]
     pub error: Option<GameError>,
-
     #[serde(skip_serializing)]
     pub target: Option<String>,
+    pub game_ended: bool,
 }
+
+
+impl Default for GameState {
+    fn default() -> Self {
+        Self {
+            subject: None,
+            records: vec![],
+            pending_question: None,
+            error: None,
+            target: None,
+            game_ended: false,
+        }
+    }
+}
+
+
+
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum Status {
@@ -171,9 +188,6 @@ impl Answer {
             timestamp: OffsetDateTime::now_utc().unix_timestamp(),
         }
     }
-
-
-
 }
 
 impl Record {

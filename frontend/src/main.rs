@@ -53,7 +53,9 @@ pub struct Props {
 fn switch(routes: Route) -> Html {
     match routes {
         Route::Home => html! { <Home /> },
-        Route::Game => html! { <Game /> },
+        Route::Game => html! { 
+            <Game />
+        },
         Route::Error => html! { <Error /> },
         Route::NotFound => html! { <h1>{ "404" }</h1> },
     }

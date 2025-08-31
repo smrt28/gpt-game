@@ -241,6 +241,7 @@ async fn ask(
         if is_cheat(&question) {
             let answer = shared::messages::Answer::get_lose(&question_builder.get_target());
             let _ = state.game_manager.answer_pending_question(&token, &answer);
+            let _ = state.game_manager.finish_game(&token);
             return
         }
 
