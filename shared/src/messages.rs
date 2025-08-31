@@ -45,10 +45,6 @@ pub struct Record {
     pub answers: Option<Answer>,
 }
 
-enum GeneralState {
-
-}
-
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct GameState {

@@ -19,7 +19,10 @@ pub fn Game() -> Html {
     let navigator = use_navigator_expect();
     let version = use_state(|| { 0 });
     let pending = use_state(|| { false });
+    let active_game = use_state(|| { false });
 
+    let active_game_on_load = active_game.clone();
+    let active_game_render = active_game.clone();
 
     let token: String = match LocalStorage::get("token").ok() {
         Some(token) => token,
@@ -78,8 +81,6 @@ pub fn Game() -> Html {
                     info!("polling; iteration={}", curr);
                     match fetch_text(&format!("/api/game/{token}?wait={wait}&quiet={quiet}")).await {
                         Ok(res) => {
-                            info!("got response: {:?}", res);
-
                             let game_state = ServerResponse::<GameState>::from_response(res.as_str());
 
                             match game_state {
@@ -89,7 +90,7 @@ pub fn Game() -> Html {
                                             if let Some(content) = server_response.content {
                                                 board.dispatch(Act::Update(content));
                                             }
-                                            return;
+                                            break;
                                         }
                                         Status::Error => {
                                             error = 1;
@@ -121,9 +122,13 @@ pub fn Game() -> Html {
                 } // loop
 
                 if error != 0 {
+                    active_game_on_load.set(false);
                     log::error!("error polling: {}", error);
                     navigator.push(&Route::Game);
                     board.dispatch(Act::InvalidGame);
+                } else {
+                    info!("game active");
+                    active_game_on_load.set(true);
                 }
             });
 
@@ -153,7 +158,6 @@ pub fn Game() -> Html {
         })
     };
 
-
     html! {
         <>
         <h1>{ "Guess Who" }</h1>
@@ -161,11 +165,13 @@ pub fn Game() -> Html {
         <Board board={board.clone()}
             on_new_game={on_new_game}/>
 
+        if *active_game_render {
         <AskPrompt prompt={"I'm someone or something, guess who I'm. Your question is:"}
             on_send={on_send}
             disabled={*pending}
             token={Some(token.clone())}
         />
+        }
 
         </>
     }

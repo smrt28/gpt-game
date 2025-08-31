@@ -14,9 +14,11 @@ use yew_router::hooks::use_navigator;
 use shared::messages::GameState;
 use crate::game_component::Game;
 
+
+
 #[derive(Clone, PartialEq, Default)]
 pub struct BoardState {
-    game: GameState,
+    game: Option<GameState>,
 }
 
 pub enum ServerErrorDetail {
@@ -41,15 +43,15 @@ impl Reducible for BoardState {
             Act::Update(next) => {
                 info!("BoardState::reduce: update");
 
-                let res = BoardState { game: next };
+                let res = BoardState { game: Some(next) };
                 Rc::new(res)
             }
             Act::InvalidGame => {
                 info!("BoardState::reduce: invalid game");
-                let mut g = GameState::default();
-                g.game_ended = true;
+                //let mut g = GameState::default();
+                //g.game_ended = true;
                 let res = BoardState {
-                    game: g
+                    game: None
                 };
                 Rc::new(res)
             }
@@ -70,30 +72,32 @@ pub struct BoardProps {
 pub fn board(props: &BoardProps) -> Html {
     let game = &props.board.deref().game;
 
-/*
-    let navigator = use_navigator().unwrap();
-    let onclick = Callback::from(move |_| spawn_local({
-        let navigator = navigator.clone();
-        async move {
-            if let Ok(token) = fetch_text("/api/game/new").await {
-                info!("res: {:?}", token);
-                LocalStorage::set("token", &token).unwrap();
-                navigator.push(&Route::Game);
-            } else {
-                navigator.push(&Route::Error);
-            }
-        }
-    }));
- */
     let onclick = {
         let cb = props.on_new_game.clone();
         Callback::from(move |_| cb.emit(()))
     };
 
+    let mut game_ended = false;
+
+    let game_board_html = if let Some(game_board) = &props.board.game {
+        info!("Board render1");
+        if game_board.game_ended {
+            game_ended = true;
+        }
+        game_board.to_html()
+    } else {
+        info!("Board render2");
+
+        game_ended = true;
+        html! {}
+    };
+
     html! {
         <div class="board">
-            { props.board.game.to_html() }
-            { if props.board.game.game_ended {
+
+            { game_board_html }
+
+            { if game_ended {
                 html! {
                   <div class="button-row">
                     <button class="new-game" {onclick}>{ "New game" }</button>
