@@ -32,8 +32,6 @@ struct SoftState {
 #[derive(Clone, Routable, PartialEq)]
 enum Route {
     #[at("/")]
-    Home,
-    #[at("/game")]
     Game,
     #[at("/error")]
     Error,
@@ -41,6 +39,7 @@ enum Route {
     #[at("/404")]
     NotFound,
 }
+
 
 #[derive(Properties, PartialEq)]
 pub struct Props {
@@ -52,8 +51,7 @@ pub struct Props {
 
 fn switch(routes: Route) -> Html {
     match routes {
-        Route::Home => html! { <Home /> },
-        Route::Game => html! { 
+        Route::Game => html! {
             <Game />
         },
         Route::Error => html! { <Error /> },

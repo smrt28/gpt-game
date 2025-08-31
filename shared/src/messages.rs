@@ -101,6 +101,9 @@ pub struct ServerResponse<Content: Serialize> {
     pub status: Status,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub content: Option<Content>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub invalid_token: Option<bool>,
 }
 
 impl <Content: DeserializeOwned + Serialize> ServerResponse::<Content> {
@@ -116,6 +119,7 @@ impl <Content: DeserializeOwned + Serialize> ServerResponse::<Content> {
         Self {
             status: status,
             content: Some(content),
+            invalid_token: None,
         }
     }
 
@@ -123,7 +127,12 @@ impl <Content: DeserializeOwned + Serialize> ServerResponse::<Content> {
         Self {
             status,
             content: None,
+            invalid_token: None,
         }
+    }
+
+    pub fn need_new_token(&self) -> bool {
+        self.invalid_token.unwrap_or(true)
     }
 }
 
@@ -132,8 +141,6 @@ pub fn status_response(status: Status) -> String {
             "status": status
         }).to_string()
 }
-
-
 
 pub fn parse_reply(s: &str) -> Option<(&str, &str)> {
     s.split_once(';')

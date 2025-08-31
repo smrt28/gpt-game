@@ -34,15 +34,22 @@ pub enum AppError {
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let http_status = StatusCode::OK;
-
         let status = match self {
             AppError::Pending => Status::Pending,
             AppError::Timeout => Status::Pending,
             _ => Status::Error
         };
 
+        let invalid_token = match self {
+            AppError::InvalidToken => true,
+            AppError::GameNotFound => true,
+            _ => false
+        };
+
         let body = serde_json::json!({
             "status": status,
+            "invalid_token": invalid_token,
+            "message": self.to_string()
         });
         (http_status, Json(body)).into_response()
     }
