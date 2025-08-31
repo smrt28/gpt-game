@@ -24,7 +24,7 @@ pub fn Game() -> Html {
     let token: String = match LocalStorage::get("token").ok() {
         Some(token) => token,
         None => {
-            navigator.push(&Route::Home);
+            navigator.push(&Route::Game);
             return html! {};
         }
     };
@@ -122,7 +122,8 @@ pub fn Game() -> Html {
 
                 if error != 0 {
                     log::error!("error polling: {}", error);
-                    navigator.push(&Route::Home);
+                    navigator.push(&Route::Game);
+                    board.dispatch(Act::InvalidGame);
                 }
             });
 

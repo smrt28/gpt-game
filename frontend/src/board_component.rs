@@ -26,6 +26,7 @@ pub enum ServerErrorDetail {
 pub enum Act {
     ServerError(ServerErrorDetail),
     Update(GameState),
+    InvalidGame,
 }
 
 impl Reducible for BoardState {
@@ -43,6 +44,16 @@ impl Reducible for BoardState {
                 let res = BoardState { game: next };
                 Rc::new(res)
             }
+            Act::InvalidGame => {
+                info!("BoardState::reduce: invalid game");
+                let mut g = GameState::default();
+                g.game_ended = true;
+                let res = BoardState {
+                    game: g
+                };
+                Rc::new(res)
+            }
+
         }
     }
 }
