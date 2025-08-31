@@ -84,6 +84,14 @@ impl GameManager {
         token
     }
 
+    pub fn get_target(&self, token: &Token) -> Result<String, AppError> {
+        let g = self.get_game(token)?;
+        if let Some(target) = &g.target {
+            return Ok(target.clone());
+        }
+        Err(AppError::InternalServerError)
+    }
+
     pub fn set_pending_question(&self, token: &Token, question: &String) -> Result<(), AppError> {
         let mut g = self.get_game(token)?;
         if g.pending_question.is_some() {

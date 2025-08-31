@@ -11,6 +11,7 @@
   --no:  #ff4d4f;
   --unable: #a78bfa;
   --na: #697386;
+  --final: #ffffff;
 
   --radius: 16px;
   --gap: 14px;
@@ -91,6 +92,7 @@ html, body {
 .badge--no     { color: var(--no);     background: color-mix(in oklab, var(--no) 18%, transparent); }
 .badge--unable { color: var(--unable); background: color-mix(in oklab, var(--unable) 18%, transparent); }
 .badge--na     { color: var(--na);     background: color-mix(in oklab, var(--na) 18%, transparent); }
+.badge--final  { color: var(--final);  background: color-mix(in oklab, var(--final) 18%, transparent); }
 
 /* answer text */
 .comment {

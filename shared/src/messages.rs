@@ -17,6 +17,7 @@ pub enum Verdict {
     Yes,
     No,
     Unable,
+    Final,
     NotSet,
     Pending
 }
@@ -115,6 +116,13 @@ pub fn status_response(status: Status) -> String {
         }).to_string()
 }
 
+
+
+pub fn parse_reply(s: &str) -> Option<(&str, &str)> {
+    s.split_once(';')
+        .map(|(tok, cmt)| (tok.trim(), cmt.trim()))
+}
+
 impl Answer {
     pub fn new() -> Self {
         Self {
@@ -131,6 +139,31 @@ impl Answer {
             timestamp: 0,
         }
     }
+
+    pub fn parse_from_string(input: &str) -> Self {
+        let mut verdict = Verdict::NotSet;
+        if let Some((token, comment)) = parse_reply(input) {
+            verdict = match token {
+                "YES"=> Verdict::Yes,
+                "NO" => Verdict::No,
+                "UNABLE" => Verdict::Unable,
+                "FINAL" => Verdict::Final,
+                _ => Verdict::NotSet,
+            };
+            return Answer {
+                verdict: Some(verdict),
+                comment: Some(comment.to_string()),
+                timestamp: OffsetDateTime::now_utc().unix_timestamp(),
+            };
+        }
+
+        Answer {
+            verdict: Some(verdict),
+            comment: Some("Weird questin, skip...".to_string()),
+            timestamp: OffsetDateTime::now_utc().unix_timestamp(),
+        }
+    }
+
 
 
 }

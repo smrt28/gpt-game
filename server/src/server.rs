@@ -45,6 +45,7 @@ use axum::extract::rejection::QueryRejection;
 use serde::de::{self, Deserializer};
 use shared::token;
 use crate::token_gen::TokenGen;
+use crate::game_prompt::GameStepBuilder;
 
 fn de_opt_bool<'de, D>(deserializer: D) -> Result<i32, D::Error>
 where
@@ -208,27 +209,36 @@ async fn ask(
     let mut gpt_client = state.client_factory.pop();
     gpt_client.update().await.unwrap();
 
-    let mut params = QuestionParams::default();
-    params.set_instructions("Short minimalistic answer");
-    state.game_manager.set_pending_question(&token, &question)?;
+
+    let mut question_builder = GameStepBuilder::default();
+
+    question_builder
+        .set_target(state.game_manager.get_target(&token)?.as_str())
+        .set_question(question.as_str())
+        .check()?
+    ;
+
+    state.game_manager.set_pending_question(&token, &question_builder.get_original_question())?;
 
     // !!! ASK !!!
     tokio::spawn(async move {
         info!("got client, asking: {}", question);
-        let result = gpt_client.client().ask(question.as_str(), &params).await;
+        let result = gpt_client.client().ask(&question_builder.build_question(),
+                                             &question_builder.build_params()).await;
 
         match result {
             Ok(gpt_answer) => {
                 info!("answer received; OK");
-                let mut answer = shared::messages::Answer::new();
-                answer.verdict = Some(Verdict::NotSet);
-                answer.comment = gpt_answer.to_string();
+
+                let s = gpt_answer.to_string().unwrap_or("UNABLE; this is weird".to_string());
+
+                let answer = shared::messages::Answer::parse_from_string(&s);
                 let _ = state.game_manager.answer_pending_question(&token, &answer);
             }
             Err(err) => {
                 info!("answer received; ERR");
                 let _ = state.game_manager.handle_error_response(&token,
-                                                                 GameError::GPTError(err.to_string()));
+                       GameError::GPTError(err.to_string()));
             }
         }
     });

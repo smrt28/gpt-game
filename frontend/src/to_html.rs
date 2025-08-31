@@ -29,6 +29,7 @@ impl ToHtmlEx for Verdict {
             Verdict::Yes    => ("Yes",    "badge badge--yes"),
             Verdict::No     => ("No",     "badge badge--no"),
             Verdict::Unable => ("Unable", "badge badge--unable"),
+            Verdict::Final =>  ("Final",  "badge badge--final"),
             Verdict::NotSet => ("N/A",    "badge badge--na"),
             Verdict::Pending => ("N/A",   "badge badge--na"),
         };
