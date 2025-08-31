@@ -1,13 +1,15 @@
 use yew::{html, Html};
 use shared::messages::{Answer, GameState, Question, Record, Verdict};
 
-#[derive(Default)]
-pub struct ToHtmlExArgs {}
+#[derive(Clone, PartialEq)]
+pub enum ToHtmlExArgs {
+    None,
+}
 
 pub trait ToHtmlEx {
     fn to_html_with_args(&self, args: &ToHtmlExArgs) -> Html;
     fn to_html(&self) -> Html {
-        self.to_html_with_args(&ToHtmlExArgs::default())
+        self.to_html_with_args(&ToHtmlExArgs::None)
     }
 }
 
@@ -28,6 +30,7 @@ impl ToHtmlEx for Verdict {
             Verdict::No     => ("No",     "badge badge--no"),
             Verdict::Unable => ("Unable", "badge badge--unable"),
             Verdict::NotSet => ("N/A",    "badge badge--na"),
+            Verdict::Pending => ("N/A",   "badge badge--na"),
         };
 
         html! {
@@ -40,11 +43,30 @@ impl ToHtmlEx for Verdict {
 
 impl ToHtmlEx for Answer {
     fn to_html_with_args(&self, args: &ToHtmlExArgs) -> Html {
+        if self.verdict == Some(Verdict::Pending) {
+            return html! {
+            <div class="comment">
+                 <div class="pending-indicator">
+                    <span></span><span></span><span></span><span></span>
+                </div>
+            </div>
+            };
+        }
+
         html! {
             <div class="comment">
                 { self.comment.as_deref().unwrap_or(&"".to_string()) }
             </div>
         }
+    }
+}
+
+impl ToHtmlEx for Option<Answer> {
+    fn to_html_with_args(&self, args: &ToHtmlExArgs) -> Html {
+        if let Some(answer) = self {
+            return answer.to_html()
+        }
+        html! {}
     }
 }
 
@@ -63,7 +85,7 @@ impl ToHtmlEx for Record {
                 { get_verdict_from_record(self).to_html() }
                 <div class="qa">
                 {self.questions.to_html() }
-                {self.answers.as_ref().map(|a| a.to_html())}
+                {self.answers.to_html()}
                 </div>
             </div>
         }
@@ -71,10 +93,9 @@ impl ToHtmlEx for Record {
 }
 
 fn create_pending_question_record(question: &Question) -> Record {
-
     Record {
         questions: question.clone(),
-        answers: None,
+        answers: Some(Answer::new_pending()),
     }
 }
 
@@ -85,7 +106,10 @@ impl ToHtmlEx for GameState {
                 { for self.records.iter().map(|r| r.to_html()) }
                 { if let Some(pendig_question) = &self.pending_question {
 
-                    html! { create_pending_question_record(&pendig_question).to_html() }
+                    html! {
+                        create_pending_question_record(&pendig_question)
+                        .to_html()
+                    }
 
                 } else { html! {} }}
 

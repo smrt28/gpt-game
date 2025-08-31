@@ -48,6 +48,7 @@ pub fn Game() -> Html {
 
 
     use_effect_with(*version, {
+        info!("Hey!");
         let token = token.clone();
         let board = board.clone();
         let navigator = navigator.clone();
@@ -55,81 +56,71 @@ pub fn Game() -> Html {
         let ver = version.clone();
 
         move |curr_ver: &i32| {
+            info!("Hey2!");
             let curr = *curr_ver;
             let cancelled = Rc::new(Cell::new(false));
 
             let cancel_for_task = cancelled.clone();
             let cancel_for_cleanup = cancelled.clone();
             spawn_local(async move {
-                if curr > 0 {
-                    let guard = scopeguard::guard((), |_| {
-                        pending.set(false);
-                    });
+                let guard = scopeguard::guard((), |_| {
+                    pending.set(false);
+                });
 
-                    let mut quiet = 0;
-                    let mut wait = 0;
-                    loop {
-                        if cancel_for_task.get() { break; }
-                        info!("polling...{}", curr);
-                        match fetch_text(&format!("/api/game/{token}?wait={wait}&quiet={quiet}")).await {
-                            Ok(res) => {
-                                info!("got response: {:?}", res);
-                                match ServerResponse::<GameState>::from_response(res.as_str()) {
-                                    Ok(server_response) => {
-                                        match server_response.status {
-                                            Status::Ok => {
-                                                break;
+                let mut quiet = 0;
+                let mut wait = 0;
+                let mut error = 0;
+                loop {
+                    if cancel_for_task.get() { break; }
+                    info!("polling; iteration={}", curr);
+                    match fetch_text(&format!("/api/game/{token}?wait={wait}&quiet={quiet}")).await {
+                        Ok(res) => {
+                            info!("got response: {:?}", res);
+
+                            let game_state = ServerResponse::<GameState>::from_response(res.as_str());
+
+                            match game_state {
+                                Ok(server_response) => {
+                                    match server_response.status {
+                                        Status::Ok => {
+                                            if let Some(content) = server_response.content {
+                                                board.dispatch(Act::Update(content));
                                             }
-                                            Status::Error => { break; }
-                                            Status::Pending => {
-                                                if quiet == 0 {
-                                                    quiet = 1;
-                                                    if let Some(content) = server_response.content {
-                                                        board.dispatch(Act::Update(content));
-                                                    }
+                                            return;
+                                        }
+                                        Status::Error => {
+                                            error = 1;
+                                            break;
+                                        }
+                                        Status::Pending => {
+                                            if quiet == 0 {
+                                                quiet = 1;
+                                                if let Some(content) = server_response.content {
+                                                    board.dispatch(Act::Update(content));
                                                 }
-
                                             }
                                         }
                                     }
-                                    Err(e) => { break; }
                                 }
-                            },
-                            Err(e) => {
-                                log::error!("fetch /api/game failed: {e:?}");
-                                break;
-                            },
-                        }
-                        wait = 1;
+                                Err(e) => {
+                                    error = 2;
+                                    break;
+                                }
+                            }
+                        },
+                        Err(e) => {
+                            error = 3;
+                            log::error!("fetch /api/game failed: {e:?}");
+                            break;
+                        },
                     }
-                } else {
-                    info!("initial fetch");
-                }
+                    wait = 1;
+                } // loop
 
-                if cancel_for_task.get() {
-                    return;
+                if error != 0 {
+                    log::error!("error polling: {}", error);
+                    navigator.push(&Route::Home);
                 }
-
-                match fetch_text(&format!("/api/game/{token}")).await {
-                    Ok(text) => {
-                        if let Ok(resp) = ServerResponse::<GameState>::from_response(text.as_str()) {
-                            if resp.status == Status::Error {
-                                navigator.push(&Route::Home);
-                            }
-                            if resp.status == Status::Pending {
-                                pending.set(true);
-                                ver.set(1 + curr);
-                            }
-                            if let Some(content) = resp.content {
-                                board.dispatch(Act::Update(content));
-                            }
-                        } else {
-                            info!("failed to parse game response");
-                        }
-                    }
-                    Err(e) => info!("fetch error: {e:?}"),
-                }
-                info!("exiting polling loop");
             });
 
             move || cancel_for_cleanup.set(true)
@@ -140,12 +131,13 @@ pub fn Game() -> Html {
     html! {
         <>
         <Board board={board.clone()}/>
-        <hr/>
-        <AskPrompt prompt={"Make your guess..."}
+
+        <AskPrompt prompt={"I'm someone or something, guess who I'm. Your question is:"}
             on_send={on_send}
             disabled={*pending}
+            token={Some(token.clone())}
         />
-        <pre>{"token:"}{token.to_string()}</pre>
+
         </>
     }
 

@@ -10,6 +10,8 @@ pub struct Props {
     pub on_send: Callback<String>,
     #[prop_or(false)]
     pub disabled: bool,
+    #[prop_or_default]
+    pub token: Option<String>,
 }
 
 #[function_component(AskPrompt)]
@@ -20,13 +22,18 @@ pub fn ask_prompt(props: &Props) -> Html {
         let textarea_ref = textarea_ref.clone();
         Callback::from(move |_| {
             if let Some(el) = textarea_ref.cast::<web_sys::HtmlTextAreaElement>() {
-                on_send.emit(el.value());
+                let value = el.value();
+                on_send.emit(value);
+                el.set_value(""); // clear it
             }
         })
     };
 
     html! {
         <div class="ask-prompt">
+            if let Some(token) = &props.token {
+                <div class="game-id">{ format!("Game Id: {}", token) }</div>
+            }
             if let Some(p) = &props.prompt {
                 <label for="ask-text">{ p }</label>
             }

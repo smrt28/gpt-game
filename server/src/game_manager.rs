@@ -75,9 +75,11 @@ impl GameManager {
         Ok(())
     }
 
-    pub fn new_game(&self) -> Token {
+    pub fn new_game(&self, target: &str) -> Token {
         let token = Token::new(TokenType::Game);
-        self.game_states.insert(token.clone(), GameState::default());
+        let mut game = GameState::default();
+        game.target = Some(target.to_string());
+        self.game_states.insert(token.clone(), game);
         self.helpers.insert(token.clone(), StateHelper::default());
         token
     }

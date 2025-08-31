@@ -17,7 +17,8 @@ pub enum Verdict {
     Yes,
     No,
     Unable,
-    NotSet
+    NotSet,
+    Pending
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -32,9 +33,7 @@ pub struct Answer {
     #[serde(default)]
     pub comment: Option<String>,
 
-
-    #[serde(with = "time::serde::rfc3339")]
-    timestamp: OffsetDateTime,
+    timestamp: i64,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -57,6 +56,9 @@ pub struct GameState {
     pub pending_question: Option<Question>,
     #[serde(default)]
     pub error: Option<GameError>,
+
+    #[serde(skip_serializing)]
+    pub target: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -115,13 +117,22 @@ pub fn status_response(status: Status) -> String {
 
 impl Answer {
     pub fn new() -> Self {
-
         Self {
             verdict: None,
             comment: None,
-            timestamp: time::OffsetDateTime::now_utc(),
+            timestamp: time::OffsetDateTime::now_utc().unix_timestamp(),
         }
     }
+
+    pub fn new_pending() -> Self {
+        Self {
+            verdict: Some(Verdict::Pending),
+            comment: None,
+            timestamp: 0,
+        }
+    }
+
+
 }
 
 impl Record {
