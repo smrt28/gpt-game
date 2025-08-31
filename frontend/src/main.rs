@@ -4,10 +4,8 @@
 
 mod ask_prompt_component;
 mod com;
-mod www_error;
 mod game_component;
 mod board_component;
-mod game_response;
 mod to_html;
 
 use std::future::pending;
@@ -54,7 +52,9 @@ fn switch(routes: Route) -> Html {
         Route::Game => html! {
             <Game />
         },
-        Route::Error => html! { <Error /> },
+        Route::Error => html! {
+            <Error />
+        },
         Route::NotFound => html! { <h1>{ "404" }</h1> },
     }
 }
@@ -103,7 +103,7 @@ fn App() -> Html {
 #[function_component]
 fn Error() -> Html {
     html! {
-        <h1>{ "Error" }</h1>
+        <h1>{ "ServerError" }</h1>
     }
 }
 

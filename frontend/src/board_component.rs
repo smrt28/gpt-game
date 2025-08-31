@@ -3,7 +3,7 @@ use std::ops::Deref;
 use gloo_storage::{LocalStorage, Storage};
 use log::info;
 use yew::{function_component, html, props, use_effect_with, use_state, Callback, Html, Properties};
-use crate::{use_navigator_expect, Route};
+use crate::{Route};
 use crate::com::{fetch_pending, fetch_text, send_question};
 use crate::ask_prompt_component::*;
 use std::rc::Rc;
@@ -13,8 +13,6 @@ use yew::prelude::*;
 use yew_router::hooks::use_navigator;
 use shared::messages::GameState;
 use crate::game_component::Game;
-
-
 
 #[derive(Clone, PartialEq, Default)]
 pub struct BoardState {
@@ -37,25 +35,16 @@ impl Reducible for BoardState {
         info!("BoardState::reduce");
         match act {
             Act::ServerError(d) => {
-                let res = (*self).clone();
-                Rc::new(res)
+                Rc::new((*self).clone())
             },
             Act::Update(next) => {
-                info!("BoardState::reduce: update");
-
-                let res = BoardState { game: Some(next) };
-                Rc::new(res)
+                Rc::new(BoardState { game: Some(next) })
             }
             Act::InvalidGame => {
-                info!("BoardState::reduce: invalid game");
-                //let mut g = GameState::default();
-                //g.game_ended = true;
-                let res = BoardState {
+                Rc::new(BoardState {
                     game: None
-                };
-                Rc::new(res)
+                })
             }
-
         }
     }
 }
@@ -66,7 +55,6 @@ pub struct BoardProps {
     pub board: UseReducerHandle<BoardState>,
     pub on_new_game: Callback<()>,
 }
-
 
 #[function_component(Board)]
 pub fn board(props: &BoardProps) -> Html {
@@ -80,14 +68,11 @@ pub fn board(props: &BoardProps) -> Html {
     let mut game_ended = false;
 
     let game_board_html = if let Some(game_board) = &props.board.game {
-        info!("Board render1");
         if game_board.game_ended {
             game_ended = true;
         }
         game_board.to_html()
     } else {
-        info!("Board render2");
-
         game_ended = true;
         html! {}
     };

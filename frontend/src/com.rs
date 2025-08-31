@@ -9,7 +9,6 @@ pub async fn fetch_text(path: &str) -> anyhow::Result<String> {
         return Err(anyhow::anyhow!("status[{}]: {}", path, res.status()));
     }
     let text = res.text().await?;
-    //info!("res: {:?} {:?}", text, res.status());
     Ok(text)
 }
 
@@ -31,8 +30,6 @@ pub async fn fetch_pending(token: &str, wait: bool) -> anyhow::Result<bool> {
         Err(anyhow::anyhow!("pending: invalid response: {:?}", v))
     }
 }
-
-
 
 pub async fn send_question(token: &str, text: &str) -> anyhow::Result<String> {
     info!("asking : {}: {}", token, text);

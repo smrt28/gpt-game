@@ -11,9 +11,6 @@ use crate::board_component::*;
 use wasm_bindgen_futures::spawn_local;
 use shared::messages::{GameState, ServerResponse, Status};
 
-
-
-
 #[function_component]
 pub fn Game() -> Html {
     let navigator = use_navigator_expect();
@@ -52,9 +49,7 @@ pub fn Game() -> Html {
         })
     };
 
-
     use_effect_with(*version, {
-        info!("Hey!");
         let token = token.clone();
         let board = board.clone();
         let navigator = navigator.clone();
@@ -62,10 +57,8 @@ pub fn Game() -> Html {
         let ver = version.clone();
 
         move |curr_ver: &i32| {
-            info!("Hey2!");
             let curr = *curr_ver;
             let cancelled = Rc::new(Cell::new(false));
-
             let cancel_for_task = cancelled.clone();
             let cancel_for_cleanup = cancelled.clone();
             spawn_local(async move {
@@ -127,7 +120,6 @@ pub fn Game() -> Html {
                     navigator.push(&Route::Game);
                     board.dispatch(Act::InvalidGame);
                 } else {
-                    info!("game active");
                     active_game_on_load.set(true);
                 }
             });
@@ -135,7 +127,6 @@ pub fn Game() -> Html {
             move || cancel_for_cleanup.set(true)
         }
     });
-
 
     let navigator = navigator.clone();
     let v2 = version.clone();
@@ -166,13 +157,12 @@ pub fn Game() -> Html {
             on_new_game={on_new_game}/>
 
         if *active_game_render {
-        <AskPrompt prompt={"I'm someone or something, guess who I'm. Your question is:"}
-            on_send={on_send}
-            disabled={*pending}
-            token={Some(token.clone())}
-        />
+            <AskPrompt prompt={"I'm someone or something, guess who I'm. Your question is:"}
+                on_send={on_send}
+                disabled={*pending}
+                token={Some(token.clone())}
+            />
         }
-
         </>
     }
 
