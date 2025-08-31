@@ -66,10 +66,12 @@ pub fn Game() -> Html {
                         pending.set(false);
                     });
 
+                    let mut quiet = 0;
+                    let mut wait = 0;
                     loop {
                         if cancel_for_task.get() { break; }
                         info!("polling...{}", curr);
-                        match fetch_text(&format!("/api/game/{token}?wait=1&quiet=1")).await {
+                        match fetch_text(&format!("/api/game/{token}?wait={wait}&quiet={quiet}")).await {
                             Ok(res) => {
                                 info!("got response: {:?}", res);
                                 match ServerResponse::<GameState>::from_response(res.as_str()) {
@@ -79,7 +81,15 @@ pub fn Game() -> Html {
                                                 break;
                                             }
                                             Status::Error => { break; }
-                                            Status::Pending => {}
+                                            Status::Pending => {
+                                                if quiet == 0 {
+                                                    quiet = 1;
+                                                    if let Some(content) = server_response.content {
+                                                        board.dispatch(Act::Update(content));
+                                                    }
+                                                }
+
+                                            }
                                         }
                                     }
                                     Err(e) => { break; }
@@ -90,6 +100,7 @@ pub fn Game() -> Html {
                                 break;
                             },
                         }
+                        wait = 1;
                     }
                 } else {
                     info!("initial fetch");

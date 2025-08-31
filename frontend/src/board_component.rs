@@ -62,24 +62,3 @@ pub fn board(props: &BoardProps) -> Html {
         </div>
     }
 }
-
-
-/*
-
-#[derive(Properties, PartialEq, Clone)]
-pub struct Props {
-    #[prop_or_default]
-    pub pending: Option<bool>,
-}
-
-#[function_component]
-pub fn Board(props: &Props) -> Html {
-    html! {
-        <div>
-        <b>{"Debug:"}</b>
-        <pre>{"pending: "} {props.pending}</pre>
-        </div>
-    }
-}
-
-*/

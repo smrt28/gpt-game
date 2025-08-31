@@ -31,7 +31,9 @@ pub fn ask_prompt(props: &Props) -> Html {
                 <label for="ask-text">{ p }</label>
             }
             <textarea
+                id="ask-text"
                 ref={textarea_ref}
+                disabled={props.disabled}
                 maxlength={props.max_len.to_string()}
             />
             <button {onclick} disabled={props.disabled}>{ "Send" }</button>

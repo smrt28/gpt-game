@@ -1,31 +1,3 @@
-.ask-prompt {
-    border: 1px solid black;
-    display: inline-flex;
-    flex-direction: column;
-    padding-left: 1rem;
-    padding-right: 1rem;
-    gap: 0.5rem;
-}
-.ask-prompt textarea {
-    width: 30rem;
-    height: 3rem;
-    resize: none;
-}
-
-.ask-prompt button {
-    width: auto;
-    color: red;
-    align-self: flex-start;
-    margin: .5rem;
-
-}
-.ask-prompt label {
-    margin-top: 5px;
-    font-family: sans-serif;
-}
-.ask-text {
-
-}
 
 
 /* --- palette & spacing tokens --- */
@@ -43,6 +15,8 @@
   --radius: 16px;
   --gap: 14px;
   --pad: 14px;
+
+  --ring: 0 0 0 2px rgba(130,170,255,.35);
 }
 
 html, body {
@@ -135,3 +109,103 @@ html, body {
   .answer { grid-template-columns: 1fr; }
   .badge { justify-self: start; }
 }
+
+
+/* ASK */
+/* Prompt container */
+.ask-prompt {
+    display: grid;
+    gap: 8px;
+    background: var(--surface, #141925);
+    color: var(--text, #e8edf5);
+    border-radius: var(--radius, 16px);
+    padding: var(--pad, 14px);
+    box-shadow: 0 6px 18px rgba(0,0,0,.18);
+}
+
+/* Label */
+.ask-prompt > label {
+    font-size: 12px;
+    color: var(--muted, #8a91a2);
+    letter-spacing: .02em;
+}
+
+/* Editor */
+.ask-prompt > textarea {
+    width: 100%;
+    min-height: 88px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,.08);
+    background: rgba(255,255,255,.04);
+    color: inherit;
+    outline: none;
+    resize: vertical;
+    transition: box-shadow .15s ease, border-color .15s ease, background .15s ease;
+}
+
+.ask-prompt > textarea:focus {
+    border-color: transparent;
+    box-shadow: var(--ring, 0 0 0 2px rgba(130,170,255,.35));
+    background: rgba(255,255,255,.06);
+}
+
+/* Layout: textarea + button */
+.ask-prompt {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+    "label  label"
+    "text   button";
+}
+.ask-prompt > label   { grid-area: label; }
+.ask-prompt > textarea{ grid-area: text; }
+.ask-prompt > button  { grid-area: button; align-self: end; }
+
+/* Button */
+:root { --accent: #82aaff; }
+@media (prefers-color-scheme: light) { :root { --accent: #1677ff; } }
+
+.ask-prompt > button {
+    appearance: none;
+    border: 1px solid color-mix(in oklab, var(--accent) 60%, transparent);
+    background: color-mix(in oklab, var(--accent) 16%, transparent);
+    color: var(--accent);
+    border-radius: 12px;
+    padding: 0 16px;              /* horizontal only */
+    font-weight: 700;
+    letter-spacing: .02em;
+    cursor: pointer;
+    transition: transform .06s ease, box-shadow .15s ease, background .15s ease;
+    user-select: none;
+
+    /* new */
+    align-self: stretch;          /* fill the row height */
+    min-width: 80px;              /* keep it wide enough */
+}
+
+.ask-prompt > button:hover {
+    background: color-mix(in oklab, var(--accent) 22%, transparent);
+    box-shadow: 0 3px 10px rgba(0,0,0,.25);
+}
+.ask-prompt > button:active { transform: translateY(1px); }
+
+/* Disabled while pending */
+.ask-prompt > button[disabled] {
+    opacity: .6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Mobile: stack button under textarea */
+@media (max-width: 560px) {
+    .ask-prompt {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+      "label"
+      "text"
+      "button";
+    }
+    .ask-prompt > button { justify-self: end; }
+}
+*, *::before, *::after { box-sizing: border-box; }
