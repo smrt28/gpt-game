@@ -60,7 +60,7 @@ fn app_root() -> PathBuf {
     #[cfg(not(debug_assertions))]
     let res = {
         PathBuf::from(std::env::var("APP_ROOT")
-            .expect("WWW_ROOT env var must be set in release builds"))
+            .expect("APP_ROOT env var must be set in release builds"))
     };
 
     info!("config: {:?}", res);
@@ -68,7 +68,6 @@ fn app_root() -> PathBuf {
 }
 
 fn www_root() -> PathBuf {
-    #[cfg(debug_assertions)]
     app_root().join("www")
 }
 
