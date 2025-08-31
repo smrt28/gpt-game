@@ -1,12 +1,11 @@
+use crate::to_html::ToHtmlEx;
 use std::ops::Deref;
 use gloo_storage::{LocalStorage, Storage};
 use log::info;
-use yew::{function_component, html, use_effect_with, use_state, Callback, Html, Properties};
+use yew::{function_component, html, props, use_effect_with, use_state, Callback, Html, Properties};
 use crate::{use_navigator_expect, Route};
 use crate::com::{fetch_pending, fetch_text, send_question};
 use crate::ask_prompt_component::*;
-
-
 use std::rc::Rc;
 use web_sys::console::info_1;
 use yew::prelude::*;
@@ -15,7 +14,6 @@ use crate::game_component::Game;
 
 #[derive(Clone, PartialEq, Default)]
 pub struct BoardState {
-    pending: Option<bool>,
     game: GameState,
 }
 
@@ -24,7 +22,6 @@ pub enum ServerErrorDetail {
 }
 
 pub enum Act {
-    SetPending(Option<bool>),
     ServerError(ServerErrorDetail),
     Update(GameState),
 }
@@ -34,23 +31,15 @@ impl Reducible for BoardState {
     fn reduce(self: Rc<Self>, act: Act) -> Rc<Self> {
         info!("BoardState::reduce");
         match act {
-            Act::SetPending(p) => Rc::new(BoardState {
-                pending: p,
-                game: self.game.clone(),
-            }),
             Act::ServerError(d) => {
-                let mut res = (*self).clone();
-                res.pending = Some(false);
-                Rc::new(res)
-            },
-            Act::Update(g) => {
-                self
-                /*
-                info!("BoardState::reduce: update");
                 let res = (*self).clone();
                 Rc::new(res)
-                
-                 */
+            },
+            Act::Update(next) => {
+                info!("BoardState::reduce: update");
+
+                let res = BoardState { game: next };
+                Rc::new(res)
             }
         }
     }
@@ -62,16 +51,15 @@ pub struct BoardProps {
     pub board: UseReducerHandle<BoardState>,
 }
 
+
 #[function_component(Board)]
 pub fn board(props: &BoardProps) -> Html {
-    let state = match props.board.pending {
-        None => "N/A",
-        Some(true) => "Pending",
-        Some(false) => "Done"
-    };
+    let game = &props.board.deref().game;
 
     html! {
-        <pre>{"BOARD>: "}{state}</pre>
+        <div class="board">
+            { game.to_html() }
+        </div>
     }
 }
 

@@ -8,6 +8,7 @@ mod www_error;
 mod game_component;
 mod board_component;
 mod game_response;
+mod to_html;
 
 use std::future::pending;
 use std::time::Duration;

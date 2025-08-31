@@ -14,6 +14,7 @@
 
 .ask-prompt button {
     width: auto;
+    color: red;
     align-self: flex-start;
     margin: .5rem;
 
@@ -22,6 +23,115 @@
     margin-top: 5px;
     font-family: sans-serif;
 }
+.ask-text {
+
+}
 
 
+/* --- palette & spacing tokens --- */
+:root {
+  --bg: #0b0c0f;
+  --surface: #141925;
+  --text: #e8edf5;
+  --muted: #8a91a2;
 
+  --yes: #18c37d;
+  --no:  #ff4d4f;
+  --unable: #a78bfa;
+  --na: #697386;
+
+  --radius: 16px;
+  --gap: 14px;
+  --pad: 14px;
+}
+
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial;
+}
+
+/* --- container layout --- */
+.board {
+  max-width: 900px;
+  margin: 24px auto;
+  padding: 0 16px;
+}
+.game {
+  display: grid;
+  gap: var(--gap);
+}
+
+/* --- each Q/A record --- */
+.record {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 18px rgba(0,0,0,.18);
+  overflow: hidden;
+  padding: var(--pad);
+  display: grid;
+  gap: 10px;
+}
+
+/* question pill */
+.question {
+  background: rgba(255,255,255,.06);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+/* answer row: badge + comment */
+.answer {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 10px;
+}
+
+/* verdict badge */
+.badge {
+  display: inline-grid;
+  place-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  user-select: none;
+  white-space: nowrap;
+}
+
+
+.record--two-col {
+  grid-template-columns: 110px 1fr;
+}
+.record--two-col .badge { align-self: stretch; border-radius: 12px; place-items: center; }
+.record--two-col .qa { display: grid; gap: 8px; }
+
+
+/* color variants */
+.badge--yes    { color: var(--yes);    background: color-mix(in oklab, var(--yes) 18%, transparent); }
+.badge--no     { color: var(--no);     background: color-mix(in oklab, var(--no) 18%, transparent); }
+.badge--unable { color: var(--unable); background: color-mix(in oklab, var(--unable) 18%, transparent); }
+.badge--na     { color: var(--na);     background: color-mix(in oklab, var(--na) 18%, transparent); }
+
+/* answer text */
+.comment {
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+/* hover affordance */
+.record:hover { box-shadow: 0 8px 24px rgba(0,0,0,.24); }
+
+/* mobile: stack tighter */
+@media (max-width: 560px) {
+  .record { padding: 12px; }
+  .answer { grid-template-columns: 1fr; }
+  .badge { justify-self: start; }
+}

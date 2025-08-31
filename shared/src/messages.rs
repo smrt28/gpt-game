@@ -4,20 +4,19 @@ use serde_json::json;
 use serde_with::skip_serializing_none;
 use log::{error, info};
 use serde::de::DeserializeOwned;
+use time::OffsetDateTime;
+//use serde_with::{serde_as, TimestampMilliSeconds}; // or use Rfc3339
 /*
 trait MessageId {
     fn get_message_id(&self) -> &str;
 }
 */
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(rename_all = "snake_case")]
 pub enum Verdict {
-    #[serde(rename = "yes")]
     Yes,
-    #[serde(rename = "no")]
     No,
-    #[serde(rename = "unable")]
     Unable,
-    #[serde(rename = "not_set")]
     NotSet
 }
 
@@ -28,30 +27,35 @@ pub struct Question {
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Answer {
+    #[serde(default)]
     pub verdict: Option<Verdict>,
+    #[serde(default)]
     pub comment: Option<String>,
-    timestamp: String,
+
+
+    #[serde(with = "time::serde::rfc3339")]
+    timestamp: OffsetDateTime,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Record {
     pub questions: Question,
+    #[serde(default)]
     pub answers: Option<Answer>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub enum GameError {
-    #[serde(rename = "error")]
-    GPTError(String),
-}
 
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[derive(Default)]
 pub struct GameState {
+    #[serde(default)]
     pub subject: Option<String>,
+    #[serde(default)]
     pub records: Vec<Record>,
+    #[serde(default)]
     pub pending_question: Option<Question>,
+    #[serde(default)]
     pub error: Option<GameError>,
 }
 
@@ -63,6 +67,12 @@ pub enum Status {
     Ok,
     #[serde(rename = "error")]
     Error,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub enum GameError {
+    #[serde(rename = "error")]
+    GPTError(String),
 }
 
 
@@ -105,11 +115,11 @@ pub fn status_response(status: Status) -> String {
 
 impl Answer {
     pub fn new() -> Self {
-        let now = chrono::Utc::now();
+
         Self {
             verdict: None,
             comment: None,
-            timestamp: now.to_rfc3339(),
+            timestamp: time::OffsetDateTime::now_utc(),
         }
     }
 }

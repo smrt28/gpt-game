@@ -184,7 +184,7 @@ async fn game(State(state): State<Shared>,
     let status = if pending {Status::Pending} else {Status::Ok};
 
     if query.quiet == 1 {
-        let game_state = ServerResponse::<GameState>::from_status(status);
+        let game_state = ServerResponse::<()>::from_status(status);
         return Ok(game_state.to_response()?);
     }
 

@@ -9,7 +9,7 @@ use crate::com::{fetch_pending, fetch_text, send_question};
 use crate::ask_prompt_component::*;
 use crate::board_component::*;
 use wasm_bindgen_futures::spawn_local;
-use shared::messages::{response_to_content, GameState, ServerResponse, Status};
+use shared::messages::{GameState, ServerResponse, Status};
 
 #[function_component]
 pub fn Game() -> Html {
@@ -129,6 +129,7 @@ pub fn Game() -> Html {
     html! {
         <>
         <Board board={board.clone()}/>
+        <hr/>
         <AskPrompt prompt={"Make your guess..."}
             on_send={on_send}
             disabled={*pending}

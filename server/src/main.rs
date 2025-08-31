@@ -8,7 +8,7 @@ mod gpt;
 use std::path::PathBuf;
 use std::sync::Arc;
 use anyhow::Result;
-
+use tracing::info;
 use crate::server::run_server;
 use crate::server::Config;
 use crate::client_pool::*;
@@ -51,14 +51,19 @@ impl PollableClientFactory::<GptClient> for GptClientFactory {
 
 fn www_root() -> PathBuf {
     #[cfg(debug_assertions)]
-    {
+    let res = {
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("www")
-    }
+    };
     #[cfg(not(debug_assertions))]
-    {
+    let res = {
         PathBuf::from(std::env::var("WWW_ROOT")
             .expect("WWW_ROOT env var must be set in release builds"))
-    }
+    };
+
+
+    info!("config: {:?}", res);
+
+    res
 }
 
 #[tokio::main]
