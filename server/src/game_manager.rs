@@ -82,19 +82,6 @@ impl GameManager {
         token
     }
 
-    pub fn get_game_state(&self, token: &Token) -> String {
-        let game = self.game_states.get(token);
-        match game {
-            Some(g) => {
-                json!({
-                    "token": token.to_string(),
-                    "state": *g
-                }).to_string()
-            },
-            None => "".to_string(),
-        }
-    }
-
     pub fn set_pending_question(&self, token: &Token, question: &String) -> Result<(), AppError> {
         let mut g = self.get_game(token)?;
         if g.pending_question.is_some() {
@@ -129,5 +116,9 @@ impl GameManager {
 
     pub fn game_to_value(&self, token: &Token) -> Result<serde_json::Value, AppError> {
         Ok(serde_json::to_value(self.get_game(token)?.deref())?)
+    }
+
+    pub fn get_game_state(&self, token: &Token) -> Result<GameState, AppError> {
+        Ok(self.get_game(token)?.deref().clone())
     }
 }

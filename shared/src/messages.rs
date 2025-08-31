@@ -73,7 +73,6 @@ pub struct ServerResponse<Content: Serialize> {
     pub content: Option<Content>,
 }
 
-
 impl <Content: DeserializeOwned + Serialize> ServerResponse::<Content> {
     pub fn from_response(response: &str) -> Result<Self, anyhow::Error> {
         Ok(serde_json::from_str::<ServerResponse<Content>>(response)?)
@@ -83,39 +82,20 @@ impl <Content: DeserializeOwned + Serialize> ServerResponse::<Content> {
         Ok(serde_json::to_string(self)?)
     }
 
-    pub fn from_status(status: Status) -> Self {
+    pub fn from_content(status :Status, content: Content) -> ServerResponse::<Content> {
         Self {
             status: status,
+            content: Some(content),
+        }
+    }
+
+    pub fn from_status(status: Status) -> Self {
+        Self {
+            status,
             content: None,
         }
     }
 }
-
-
-pub fn response_to_content<Content>(res: &str) -> anyhow::Result<Content>
-where
-    Content: DeserializeOwned + Serialize,
-{
-    let r: ServerResponse<Content> = serde_json::from_str(res)?;
-    r.content.ok_or_else(|| anyhow::anyhow!("missing content"))
-}
-
-pub fn content_to_response<Content: Serialize>(status: Status, content: Content) -> String {
-    let rv = ServerResponse::<Content> {
-        status: status.clone(),
-        content: Some(content)
-    };
-
-    if let Ok(rv) = serde_json::to_string(&rv) {
-        return rv;
-    };
-
-    error!("failed to serialize response");
-    json!({
-            "status": "error",
-    }).to_string()
-}
-
 
 pub fn status_response(status: Status) -> String {
     json!({

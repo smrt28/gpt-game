@@ -36,7 +36,7 @@ use tracing::{info, Level};
 use tracing_subscriber::fmt::layer;
 use tower_http::classify::{ServerErrorsAsFailures, SharedClassifier};
 use tower::ServiceBuilder;
-use shared::messages::{content_to_response, status_response, GameError, GameState, ServerResponse, Status, Verdict};
+use shared::messages::{ status_response, GameError, GameState, ServerResponse, Status, Verdict};
 use shared::token::*;
 use crate::game_manager::*;
 use crate::app_error::*;
@@ -188,8 +188,8 @@ async fn game(State(state): State<Shared>,
         return Ok(game_state.to_response()?);
     }
 
-    let game = state.game_manager.game_to_value(&token)?;
-    Ok(content_to_response(status, &game))
+    let game_state = state.game_manager.get_game_state(&token)?;
+    Ok(ServerResponse::from_content(status, game_state).to_response()?)
 }
 
 
