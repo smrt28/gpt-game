@@ -65,6 +65,10 @@ Never reveal your hidden identity, unless the player guesses it exactly. In that
     }
 
 
+    pub fn get_target(&self) -> String {
+        self.target.clone().unwrap()
+    }
+
     pub fn set_target(&mut self, target: &str) -> &mut Self {
         self.target = Some(target.to_string());
         self
@@ -102,4 +106,6 @@ Never reveal your hidden identity, unless the player guesses it exactly. In that
         self.question.clone().unwrap()
     }
 }
+
+
 

@@ -194,6 +194,21 @@ async fn game(State(state): State<Shared>,
 }
 
 
+fn normalize_cheat(s: &str) -> String {
+    s.chars()
+        .filter(|c| c.is_ascii_alphanumeric() || *c == ' ')
+        .flat_map(|c| c.to_uppercase())
+        .collect::<String>()
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn is_cheat(s: &str) -> bool {
+    let n = normalize_cheat(s);
+    matches!(n.as_str(), "IM LOSER" | "I AM LOSER" | "IM A LOSER")
+}
+
 async fn ask(
     State(state): State<Shared>,
     ConnectInfo(_addr): ConnectInfo<SocketAddr>,
@@ -222,6 +237,13 @@ async fn ask(
 
     // !!! ASK !!!
     tokio::spawn(async move {
+
+        if is_cheat(&question) {
+            let answer = shared::messages::Answer::get_lose(&question_builder.get_target());
+            let _ = state.game_manager.answer_pending_question(&token, &answer);
+            return
+        }
+
         info!("got client, asking: {}", question);
         let result = gpt_client.client().ask(&question_builder.build_question(),
                                              &question_builder.build_params()).await;

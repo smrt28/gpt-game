@@ -140,6 +140,14 @@ impl Answer {
         }
     }
 
+    pub fn get_lose(result: &String) -> Self {
+        Answer {
+            verdict: Some(Verdict::Final),
+            comment: Some(format!("I'm {}", result)),
+            timestamp: OffsetDateTime::now_utc().unix_timestamp(),
+        }
+    }
+
     pub fn parse_from_string(input: &str) -> Self {
         let mut verdict = Verdict::NotSet;
         if let Some((token, comment)) = parse_reply(input) {

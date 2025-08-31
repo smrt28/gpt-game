@@ -11,6 +11,9 @@ use crate::board_component::*;
 use wasm_bindgen_futures::spawn_local;
 use shared::messages::{GameState, ServerResponse, Status};
 
+
+
+
 #[function_component]
 pub fn Game() -> Html {
     let navigator = use_navigator_expect();
@@ -130,8 +133,12 @@ pub fn Game() -> Html {
 
     html! {
         <>
-        <Board board={board.clone()}/>
+        <h1>{ "Guess Who" }</h1>
 
+        <Board board={board.clone()}/>
+        <div class="note">
+        {"Type: \"I'M LOSER\" and I’ll reveal my identity and pick a new one. " }
+        </div>
         <AskPrompt prompt={"I'm someone or something, guess who I'm. Your question is:"}
             on_send={on_send}
             disabled={*pending}
