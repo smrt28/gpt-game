@@ -84,10 +84,12 @@ struct AppState {
     game_manager: GameManager,
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct Config {
-    pub www_root_path: Option<PathBuf>,
+    pub www_root_path: PathBuf,
+    pub app_root_path: PathBuf,
     pub port: u16,
+    pub instruction_template: String,
 }
 
 impl AppState {
@@ -126,17 +128,17 @@ pub async fn run_server(
         .fallback(get(handler_404))
         ;
 
-    if let Some(root) = &config.www_root_path {
-        let static_svc = ServiceBuilder::new()
-            .layer(logging())
-            .service(
-                ServeDir::new(root)
-                    .append_index_html_on_directories(true)
-                    .precompressed_br()
-                    .precompressed_gzip(),
-            );
-        app = app.nest_service("/static", static_svc);
-    }
+    let root = &config.www_root_path;
+    let static_svc = ServiceBuilder::new()
+        .layer(logging())
+        .service(
+            ServeDir::new(root)
+                .append_index_html_on_directories(true)
+                .precompressed_br()
+                .precompressed_gzip(),
+        );
+    app = app.nest_service("/static", static_svc);
+
 
     app = app.layer(logging());
 
@@ -225,7 +227,7 @@ async fn ask(
     gpt_client.update().await.unwrap();
 
 
-    let mut question_builder = GameStepBuilder::default();
+    let mut question_builder = GameStepBuilder::new(&state.config);
 
     question_builder
         .set_target(state.game_manager.get_target(&token)?.as_str())
@@ -247,7 +249,7 @@ async fn ask(
 
         info!("got client, asking: {}", question);
         let result = gpt_client.client().ask(&question_builder.build_question(),
-                                             &question_builder.build_params()).await;
+                                             &question_builder.build_params(&state.config)).await;
 
         match result {
             Ok(gpt_answer) => {

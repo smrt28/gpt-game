@@ -14,6 +14,7 @@ use crate::server::Config;
 use crate::client_pool::*;
 use crate::gpt::GptClient;
 use tracing_subscriber::EnvFilter;
+use std::fs;
 
 #[macro_use]
 mod macros;
@@ -51,21 +52,24 @@ impl PollableClientFactory::<GptClient> for GptClientFactory {
     }
 }
 
-fn www_root() -> PathBuf {
+fn app_root() -> PathBuf {
     #[cfg(debug_assertions)]
     let res = {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("www")
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
     };
     #[cfg(not(debug_assertions))]
     let res = {
-        PathBuf::from(std::env::var("WWW_ROOT")
+        PathBuf::from(std::env::var("APP_ROOT")
             .expect("WWW_ROOT env var must be set in release builds"))
     };
 
-
     info!("config: {:?}", res);
-
     res
+}
+
+fn www_root() -> PathBuf {
+    #[cfg(debug_assertions)]
+    app_root().join("www")
 }
 
 #[tokio::main]
@@ -79,7 +83,15 @@ async fn main() -> Result<()> {
 
    let mut config = Config::default();
     config.port = 3000;
-    config.www_root_path = Some(www_root());
+    config.app_root_path = app_root();
+    config.www_root_path = www_root();
+
+    config.instruction_template = fs::read_to_string(config.app_root_path
+        .join("assets")
+        .join("instructions.txt"))
+        .expect("Can't read instructions.txt").to_string();
+
+
     run_server(&config, Arc::new(GptClientFactory::new())).await?;
     Ok(())
 }
