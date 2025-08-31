@@ -255,5 +255,5 @@ async fn index(State(_state): State<Shared>,
 
 async fn new_game(State(state): State<Shared>,
                ConnectInfo(_addr): ConnectInfo<SocketAddr>) -> String {
-    state.game_manager.new_game("Yellow submarine").to_string()
+    state.game_manager.new_game(crate::built_in_options::random_identity()).to_string()
 }

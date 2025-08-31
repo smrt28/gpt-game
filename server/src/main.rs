@@ -22,6 +22,7 @@ mod app_error;
 mod client_pool;
 mod token_gen;
 mod game_prompt;
+mod built_in_options;
 
 struct GptClientFactory {
     config: ClientFactoryConfig,
