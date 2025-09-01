@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use std::cell::RefCell;
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 use shared::token::*;
 use dashmap::DashMap;
@@ -129,7 +129,13 @@ impl GameManager {
     }
 
     pub fn get_game_state(&self, token: &Token) -> Result<GameState, AppError> {
-        Ok(self.get_game(token)?.deref().clone())
+        let mut g = self.get_game(token)?.deref().clone();
+
+        if !g.game_ended {
+            g.clear_comments();
+        }
+
+        Ok(g)
     }
 
     pub fn finish_game(&self, token: &Token) -> Result<(), AppError> {

@@ -2,19 +2,17 @@ use yew::{html, Html};
 use shared::messages::{Answer, GameState, Question, Record, Verdict};
 
 #[derive(Clone, PartialEq)]
-pub enum ToHtmlExArgs {
-    None,
+pub struct  ToHtmlExArgs<'a> {
+    pub state: &'a GameState,
+
 }
 
 pub trait ToHtmlEx {
-    fn to_html_with_args(&self, args: &ToHtmlExArgs) -> Html;
-    fn to_html(&self) -> Html {
-        self.to_html_with_args(&ToHtmlExArgs::None)
-    }
+    fn to_html(&self, args: &ToHtmlExArgs) -> Html;
 }
 
 impl ToHtmlEx for Question {
-    fn to_html_with_args(&self, args: &ToHtmlExArgs) -> Html {
+    fn to_html(&self, args: &ToHtmlExArgs) -> Html {
         html! {
             <div class="question">
                 { self.text.to_string() }
@@ -24,7 +22,7 @@ impl ToHtmlEx for Question {
 }
 
 impl ToHtmlEx for Verdict {
-    fn to_html_with_args(&self, args: &ToHtmlExArgs) -> Html {
+    fn to_html(&self, args: &ToHtmlExArgs) -> Html {
         let (label, class) = match self {
             Verdict::Yes    => ("Yes",    "badge badge--yes"),
             Verdict::No     => ("No",     "badge badge--no"),
@@ -43,7 +41,7 @@ impl ToHtmlEx for Verdict {
 }
 
 impl ToHtmlEx for Answer {
-    fn to_html_with_args(&self, args: &ToHtmlExArgs) -> Html {
+    fn to_html(&self, args: &ToHtmlExArgs) -> Html {
         if self.verdict == Some(Verdict::Pending) {
             return html! {
             <div class="comment">
@@ -54,18 +52,22 @@ impl ToHtmlEx for Answer {
             };
         }
 
-        html! {
-            <div class="comment">
-                { self.comment.as_deref().unwrap_or(&"".to_string()) }
-            </div>
+        if args.state.game_ended {
+            html! {
+                <div class="comment">
+                    { self.comment.as_deref().unwrap_or(&"".to_string()) }
+                </div>
+            }
+        } else {
+            html! {}
         }
     }
 }
 
 impl ToHtmlEx for Option<Answer> {
-    fn to_html_with_args(&self, args: &ToHtmlExArgs) -> Html {
+    fn to_html(&self, args: &ToHtmlExArgs) -> Html {
         if let Some(answer) = self {
-            return answer.to_html()
+            return answer.to_html(args)
         }
         html! {}
     }
@@ -80,13 +82,13 @@ fn get_verdict_from_record(record: &Record) -> Verdict {
 }
 
 impl ToHtmlEx for Record {
-    fn to_html_with_args(&self, args: &ToHtmlExArgs) -> Html {
+    fn to_html(&self, args: &ToHtmlExArgs) -> Html {
         html! {
             <div class="record record--two-col">
-                { get_verdict_from_record(self).to_html() }
+                { get_verdict_from_record(self).to_html(args) }
                 <div class="qa">
-                {self.questions.to_html() }
-                {self.answers.to_html()}
+                {self.questions.to_html(args) }
+                {self.answers.to_html(args)}
                 </div>
             </div>
         }
@@ -101,15 +103,15 @@ fn create_pending_question_record(question: &Question) -> Record {
 }
 
 impl ToHtmlEx for GameState {
-    fn to_html_with_args(&self, args: &ToHtmlExArgs) -> Html {
+    fn to_html(&self, args: &ToHtmlExArgs) -> Html {
         html! {
             <div class="game">
-                { for self.records.iter().map(|r| r.to_html()) }
+                { for self.records.iter().map(|r| r.to_html(args)) }
                 { if let Some(pendig_question) = &self.pending_question {
 
                     html! {
                         create_pending_question_record(&pendig_question)
-                        .to_html()
+                        .to_html(args)
                     }
 
                 } else { html! {} }}

@@ -188,8 +188,6 @@ struct RequestBody<'a> {
         info!("asking...1");
         let body = serde_json::to_value(&body)?;
 
-
-
         info!("asking...2");
         let resp = self.client
             .post("https://api.openai.com/v1/responses")
@@ -198,7 +196,6 @@ struct RequestBody<'a> {
             .json(&body)
             .send()
             .await;
-
 
         let resp = match resp {
             Ok(resp) => resp,

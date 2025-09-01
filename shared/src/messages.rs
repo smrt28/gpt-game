@@ -75,6 +75,15 @@ impl Default for GameState {
     }
 }
 
+impl GameState {
+    pub fn clear_comments(&mut self) {
+        for record in &mut self.records {
+            if let Some(answer) = &mut record.answers {
+                answer.comment = None;
+            }
+        }
+    }
+}
 
 
 

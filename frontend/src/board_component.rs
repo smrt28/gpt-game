@@ -1,4 +1,4 @@
-use crate::to_html::ToHtmlEx;
+use crate::to_html::{ToHtmlEx, ToHtmlExArgs};
 use std::ops::Deref;
 use gloo_storage::{LocalStorage, Storage};
 use log::info;
@@ -71,7 +71,10 @@ pub fn board(props: &BoardProps) -> Html {
         if game_board.game_ended {
             game_ended = true;
         }
-        game_board.to_html()
+        let args = ToHtmlExArgs{
+            state: &game_board
+        };
+        game_board.to_html(&args)
     } else {
         game_ended = true;
         html! {}
@@ -91,7 +94,9 @@ pub fn board(props: &BoardProps) -> Html {
             } else {
                 html! {
                 <div class="note">
-                  { "Type: \"I'M LOSER\" and I’ll reveal my identity and pick a new one." }
+                    <span>
+                  { "Type: \""} <b> {"I'M LOSER"} </b> {"\", I’ll reveal my identity and explain my answers." }
+                    </span>
                 </div>
                 }
             }}
