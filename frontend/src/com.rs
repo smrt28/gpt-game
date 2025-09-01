@@ -4,6 +4,7 @@ use log::info;
 use serde_json::{Result, Value};
 
 pub async fn fetch_text(path: &str) -> anyhow::Result<String> {
+    info!("fetching: {}", path);
     let res = Request::get(path).send().await?;
     if res.status() != 200 {
         return Err(anyhow::anyhow!("status[{}]: {}", path, res.status()));

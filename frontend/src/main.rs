@@ -29,7 +29,7 @@ struct SoftState {
 
 #[derive(Clone, Routable, PartialEq)]
 enum Route {
-    #[at("/")]
+    #[at("/game")]
     Game,
     #[at("/error")]
     Error,
@@ -48,6 +48,7 @@ pub struct Props {
 }
 
 fn switch(routes: Route) -> Html {
+    info!("switch");
     match routes {
         Route::Game => html! {
             <Game />
@@ -93,11 +94,13 @@ fn use_navigator_expect() -> Navigator {
 fn App() -> Html {
     let counter = use_state(|| 0);
     info!("counter is: {:?}", counter);
-        html! {
+    let res = html! {
         <BrowserRouter>
             <Switch<Route> render={switch} /> // <- must be child of <BrowserRouter>
         </BrowserRouter>
-    }
+    };
+    info!("Ok");
+    res
 }
 
 #[function_component]

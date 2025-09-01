@@ -30,7 +30,7 @@ use crate::client_pool::*;
 use crate::gpt::*;
 use shared::shared_error::*;
 use tokio::time::timeout;
-use tower_http::services::ServeDir;
+use tower_http::services::{ServeDir, ServeFile};
 use tower_http::trace::{DefaultMakeSpan, DefaultOnFailure, DefaultOnRequest, DefaultOnResponse, TraceLayer};
 use tracing::{info, Level};
 use tracing_subscriber::fmt::layer;
@@ -101,9 +101,9 @@ type Shared = Arc<AppState>;
 
 fn logging() -> TraceLayer<SharedClassifier<ServerErrorsAsFailures>> {
     TraceLayer::new_for_http()
-        .make_span_with(DefaultMakeSpan::new().level(Level::DEBUG))
-        .on_request(DefaultOnRequest::new().level(Level::DEBUG))
-        .on_response(DefaultOnResponse::new().level(Level::DEBUG))
+        .make_span_with(DefaultMakeSpan::new().level(Level::INFO))
+        .on_request(DefaultOnRequest::new().level(Level::INFO))
+        .on_response(DefaultOnResponse::new().level(Level::INFO))
         .on_failure(DefaultOnFailure::new().level(Level::ERROR))
 }
 
@@ -121,17 +121,30 @@ pub async fn run_server(
         .fallback(get(handler_404))
         ;
 
-    let root = &config.www.path;
+
     let static_svc = ServiceBuilder::new()
         .layer(logging())
         .service(
-            ServeDir::new(root)
+            ServeDir::new(&config.www.path)
                 .append_index_html_on_directories(true)
                 .precompressed_br()
                 .precompressed_gzip(),
         );
     app = app.nest_service("/static", static_svc);
 
+
+
+    let static_svc = ServiceBuilder::new()
+        .layer(logging())
+        .service(
+            ServeDir::new(&config.www.frontend_path)
+                .append_index_html_on_directories(true)
+                .precompressed_br()
+                .precompressed_gzip()
+                .not_found_service(ServeFile::new(PathBuf::new().join(&config.www.frontend_path).join("index.html")))
+        );
+
+    app = app.nest_service("/run", static_svc);
 
     app = app.layer(logging());
 

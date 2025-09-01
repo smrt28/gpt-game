@@ -4,7 +4,7 @@ root = "/gggame"
 [www]
 path = "/home/smrt/w/gpt-game/server/www"
 port = 3000
-
+frontend_path = "/home/smrt/w/gpt-game/frontend/dist"
 
 [gpt]
 path = "/home/smrt/w/gpt-game/server/assets"

@@ -11,8 +11,12 @@ use crate::board_component::*;
 use wasm_bindgen_futures::spawn_local;
 use shared::messages::{GameState, ServerResponse, Status};
 
+
+// http://localhost:3000/run/game
+
 #[function_component]
 pub fn Game() -> Html {
+    info!("Game");
     let navigator = use_navigator_expect();
     let version = use_state(|| { 0 });
     let pending = use_state(|| { false });
@@ -21,11 +25,13 @@ pub fn Game() -> Html {
     let active_game_on_load = active_game.clone();
     let active_game_render = active_game.clone();
 
-    let token: String = match LocalStorage::get("token").ok() {
-        Some(token) => token,
-        None => {
-            navigator.push(&Route::Game);
-            return html! {};
+    let mut try_token = true;
+
+    let token: String = match LocalStorage::get("token") {
+        Ok(Some(token)) => token,
+        _ => {
+            try_token = false;
+            "".to_string()
         }
     };
 
@@ -70,6 +76,11 @@ pub fn Game() -> Html {
                 let mut wait = 0;
                 let mut error = 0;
                 loop {
+                    if !try_token {
+                        error = 10;
+                        info!("missing token");
+                        break;
+                    }
                     if cancel_for_task.get() { break; }
                     info!("polling; iteration={}", curr);
                     match fetch_text(&format!("/api/game/{token}?wait={wait}&quiet={quiet}")).await {
@@ -116,7 +127,7 @@ pub fn Game() -> Html {
 
                 if error != 0 {
                     active_game_on_load.set(false);
-                    log::error!("error polling: {}", error);
+                    log::info!("error polling: {}", error);
                     navigator.push(&Route::Game);
                     board.dispatch(Act::InvalidGame);
                 } else {

@@ -7,9 +7,13 @@ address = "127.0.0.1"
 port = 8000
 no_cache = true
 
-[[proxy]]
-backend = "http://127.0.0.1:3000/api/"
+#[proxy]]
+#backend = "http://127.0.0.1:3000/api/"
 
-[[proxy]]
-backend = "http://127.0.0.1:3000/static/"
+#[[proxy]]
+#backend = "http://127.0.0.1:3000/static/"
 
+
+[build]
+dist = "dist"
+public_url = "/run/"
