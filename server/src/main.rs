@@ -14,7 +14,7 @@ use crate::server::Config;
 use crate::client_pool::*;
 use crate::gpt::GptClient;
 use tracing_subscriber::EnvFilter;
-use std::fs;
+use std::{env, fs};
 
 #[macro_use]
 mod macros;
@@ -24,6 +24,7 @@ mod client_pool;
 mod token_gen;
 mod game_prompt;
 mod built_in_options;
+mod config;
 
 struct GptClientFactory {
     config: ClientFactoryConfig,
@@ -71,8 +72,30 @@ fn www_root() -> PathBuf {
     app_root().join("www")
 }
 
+
+fn read_config() -> Result<config::Config, anyhow::Error> {
+    #[cfg(not(debug_assertions))]
+    let config = {
+        let args: Vec<String> = env::args().collect();
+        config::Config::read(args.get(1)?)?;
+    };
+
+    #[cfg(debug_assertions)]
+    let config = {
+        let config_file = app_root()
+            .join("assets")
+            .join("config.toml");
+        config::Config::read(config_file.to_str().unwrap())?
+    };
+
+    Ok(config)
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
+
+    read_config()?;
+
     tracing_subscriber::fmt()
         .with_env_filter(
             EnvFilter::try_from_default_env()

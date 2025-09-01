@@ -1,0 +1,13 @@
+debug=true
+root = "/gggame"
+
+[www]
+path = "www"
+port = 3000
+
+
+[gpt]
+path = "/home/smrt/w/gpt-game/server/assets"
+instructions_file = "instructions.txt"
+key_file="/home/smrt/.gptkey"
+max_clients_count=15
