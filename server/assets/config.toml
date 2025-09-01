@@ -2,7 +2,7 @@ debug=true
 root = "/gggame"
 
 [www]
-path = "www"
+path = "/home/smrt/w/gpt-game/server/www"
 port = 3000
 
 
@@ -10,4 +10,4 @@ port = 3000
 path = "/home/smrt/w/gpt-game/server/assets"
 instructions_file = "instructions.txt"
 key_file="/home/smrt/.gptkey"
-max_clients_count=15
+max_clients_count=10

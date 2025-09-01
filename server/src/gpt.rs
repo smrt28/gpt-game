@@ -4,14 +4,15 @@
 #![allow(unused_imports)]
 #![allow(dead_code)]
 
-use crate::string_enum;
-use anyhow::{Context, Result};
+//use crate::fs::TryLockError::Error;
+use crate::{config, string_enum};
+use anyhow::{anyhow, Context, Result};
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE};
 use serde_json::{json, Value};
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
-use log::info;
+use log::{error, info};
 use serde::{Deserialize, Serialize};
 
 string_enum! {
@@ -97,7 +98,7 @@ impl Answer {
 
 pub struct GptClient {
     client: reqwest::Client,
-    key: Option<String>,
+    key: String,
 }
 
 string_enum! {
@@ -162,46 +163,19 @@ struct RequestBody<'a> {
     temperature: Option<f32>,
 }
 
-
  impl GptClient {
-    pub fn new() -> Self {
+    pub fn new(config: &config::Gpt) -> Self {
         Self {
             client: reqwest::Client::new(),
-            key: None,
+            key: config.gpt_key.clone()
         }
     }
 
     fn get_key(&self) -> anyhow::Result<&str> {
-        self.key
-            .as_ref()
-            .map(|s| s.as_str())
-            .ok_or_else(|| anyhow::anyhow!("key not set"))
+        Ok(&self.key)
     }
 
-    pub fn read_gpt_key_from_file(&mut self, path_opt: Option<String>) -> Result<()> {
-        let path: PathBuf = match path_opt {
-            Some(p) => PathBuf::from(p),
-            None => {
-                let home = env::var("HOME")
-                    .context("HOME is not set; pass a path or set HOME")?;
-                PathBuf::from(home).join(".gpt.key")
-            }
-        };
-
-        let contents = fs::read_to_string(&path)
-            .with_context(|| format!("reading key file at {}", path.display()))?;
-
-        let key = contents.trim().to_string();
-        if key.is_empty() {
-            anyhow::bail!("key file {} is empty/whitespace", path.display());
-        }
-
-        self.key = Some(key.clone());
-        Ok(())
-    }
-
-
-    pub async fn ask(&self, question: &str, params: &QuestionParams) -> Result<Answer> {
+    pub async fn ask(&self, question: &str, params: &QuestionParams) -> Result<Answer, anyhow::Error> {
         info!("asking...");
         let body = RequestBody {
             model: params.model.to_string(),
@@ -213,6 +187,9 @@ struct RequestBody<'a> {
         };
         info!("asking...1");
         let body = serde_json::to_value(&body)?;
+
+
+
         info!("asking...2");
         let resp = self.client
             .post("https://api.openai.com/v1/responses")
@@ -220,8 +197,17 @@ struct RequestBody<'a> {
             .header(AUTHORIZATION, format!("Bearer {}", self.get_key()?))
             .json(&body)
             .send()
-            .await
-            .context("AI HTTP request failed")?;
+            .await;
+
+
+        let resp = match resp {
+            Ok(resp) => resp,
+            Err(err) => {
+                error!("OpenAI error: {}", err.to_string());
+                return Err(anyhow!("OpenAI error: {}", err.to_string()));
+            }
+        };
+
         info!("asking...3");
         let status = resp.status();
         info!("asking...4");

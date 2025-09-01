@@ -2,36 +2,37 @@
 use std::path::*;
 use serde::Deserialize;
 use std::fs;
+use log::error;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Config {
     pub debug: bool,
     pub root: String,
     pub www: Www,
     pub gpt: Gpt,
 
-    #[serde(skip)]
-    pub data: Data,
+
+
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Www {
     pub port: u16,
     pub path: String,
 }
 
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Gpt {
     pub path: String,
     pub instructions_file: String,
     pub key_file: String,
     pub max_clients_count: u32,
-}
 
-#[derive(Default, Debug)]
-pub struct Data {
+
+    #[serde(skip)]
     pub gpt_instructions: String,
+    #[serde(skip)]
     pub gpt_key: String,
 }
 
@@ -66,15 +67,23 @@ impl Config {
     }
 
     fn read_path(&self, component: &str, file: &str) -> Result<String, anyhow::Error> {
-        Ok(fs::read_to_string(self.get_path(component, file))?)
+
+        let f = self.get_path(component, file);
+        match fs::read_to_string(f.clone()) {
+            Ok(res) => return Ok(res),
+            Err(err) => {
+                error!("file {} not found, err={}", f.to_str().unwrap(), err);
+                return Err(err.into());
+            }
+        }
     }
 
     pub fn read(file_name: &str) -> Result<Config, anyhow::Error> {
         let contents = fs::read_to_string(file_name)?;
         let mut c = toml::from_str::<Config>(&contents)?;
 
-        c.data.gpt_instructions = c.read_path(&c.gpt.path, &c.gpt.instructions_file)?;
-        c.data.gpt_key = c.read_path(&c.gpt.path, &c.gpt.key_file)?;
+        c.gpt.gpt_instructions = c.read_path(&c.gpt.path, &c.gpt.instructions_file)?;
+        c.gpt.gpt_key = c.read_path(&c.gpt.path, &c.gpt.key_file)?.trim().to_string();
         Ok(c)
     }
 }

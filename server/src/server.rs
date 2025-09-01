@@ -46,6 +46,7 @@ use serde::de::{self, Deserializer};
 use shared::token;
 use crate::token_gen::TokenGen;
 use crate::game_prompt::GameStepBuilder;
+use crate::Config;
 
 fn de_opt_bool<'de, D>(deserializer: D) -> Result<i32, D::Error>
 where
@@ -84,14 +85,6 @@ struct AppState {
     game_manager: GameManager,
 }
 
-#[derive(Default, Clone, Debug)]
-pub struct Config {
-    pub www_root_path: PathBuf,
-    pub app_root_path: PathBuf,
-    pub port: u16,
-    pub instruction_template: String,
-}
-
 impl AppState {
     fn new(factory: Arc<dyn PollableClientFactory<GptClient> + Send + Sync>, config: &Config) -> Self {
         Self {
@@ -118,7 +111,7 @@ pub async fn run_server(
     config: &Config,
     factory: Arc<dyn PollableClientFactory<GptClient> + Send + Sync>,) -> anyhow::Result<()> {
     let state = Shared::new(AppState::new(factory, config));
-    tracing::info!("starting server on port {}", config.port);
+    tracing::info!("starting server on port {}", config.www.port);
 
     let mut app = Router::new()
         .route("/api/token", get(index))
@@ -128,7 +121,7 @@ pub async fn run_server(
         .fallback(get(handler_404))
         ;
 
-    let root = &config.www_root_path;
+    let root = &config.www.path;
     let static_svc = ServiceBuilder::new()
         .layer(logging())
         .service(
@@ -147,7 +140,7 @@ pub async fn run_server(
         .with_state(state)
         .layer(logging());
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], config.port));
+    let addr = SocketAddr::from(([127, 0, 0, 1], config.www.port));
     let listener = TcpListener::bind(addr).await?;
 
     axum::serve(

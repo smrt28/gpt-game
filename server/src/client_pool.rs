@@ -6,15 +6,11 @@ use tokio::sync::futures::Notified;
 use crate::gpt::GptClient;
 use tokio::sync::Notify;
 use crate::app_error::AppError;
-
-#[derive(Clone, Default)]
-pub struct ClientFactoryConfig {
-    pub max_clients: i32,
-}
+use crate::config;
 
 pub trait PollableClientFactory<Client> : Send + Sync {
     fn build_client(&self) -> Client;
-    fn get_config(&self) -> &ClientFactoryConfig;
+    fn get_config(&self) -> &config::Gpt;
 }
 
 pub type Factory<Client> =
@@ -22,7 +18,7 @@ pub type Factory<Client> =
 
 struct ClientsStorage<Client> {
     clients: Vec<Arc<Client>>,
-    clients_total: i32,
+    clients_total: u32,
     notify: Arc<Notify>,
 }
 
@@ -93,7 +89,7 @@ impl<Client> ClientsPool<Client> {
         let config = self.factory.get_config();
         let mut storage = self.storage.lock().unwrap();
         if storage.clients.len() == 0 {
-            if storage.clients_total >= config.max_clients {
+            if storage.clients_total >= config.max_clients_count {
                 return ClientGuard {
                     client: None,
                     pool: Arc::clone(self),

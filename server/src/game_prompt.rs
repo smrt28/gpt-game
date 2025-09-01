@@ -2,7 +2,7 @@ use std::fmt::format;
 use tower::util::Either;
 use crate::app_error::AppError;
 use crate::gpt::QuestionParams;
-use crate::server::Config;
+use crate::config::Config;
 
 
 #[derive(Debug, Clone)]
@@ -18,7 +18,7 @@ impl GameStepBuilder {
     pub fn build_params(&self, config: &Config) -> QuestionParams {
         let mut params = QuestionParams::default();
         let target = self.target.clone().unwrap();
-        let instructions = config.instruction_template.replace("{target}", target.as_str());
+        let instructions = config.gpt.gpt_instructions.replace("{target}", target.as_str());
         params.set_instructions(instructions);
         params
     }
@@ -30,7 +30,6 @@ impl GameStepBuilder {
             target: None,
         }
     }
-
 
     pub fn get_target(&self) -> String {
         self.target.clone().unwrap()
