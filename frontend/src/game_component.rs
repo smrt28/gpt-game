@@ -20,6 +20,7 @@ pub fn Game() -> Html {
     let version = use_state(|| 0);
     let pending = use_state(|| false);
     let active_game = use_state(|| false);
+    let show_instructions = use_state(|| true);
     let board = use_reducer(BoardState::default);
 
     let (token, has_token) = match LocalStorage::get::<String>("token") {
@@ -151,6 +152,13 @@ pub fn Game() -> Html {
         })
     };
 
+    let toggle_instructions = {
+        let show_instructions = show_instructions.clone();
+        Callback::from(move |_| {
+            show_instructions.set(!*show_instructions);
+        })
+    };
+
     html! {
         <>
             <h1>{"Guess Who"}</h1>
@@ -166,12 +174,23 @@ pub fn Game() -> Html {
                 />
             }
 
-             <div class="instructions">
-                <ul>
-                    <li>{"Only the questions that can be answered with YES or NO are allowed."}</li>
-                    <li>{"If a question cannot be answered with a simple yes/no, the response will be UNABLE."}</li>
-                    <li>{ "Type: \""} <b> {"I'M LOSER"} </b> {"\", I’ll reveal my identity and explain my answers." } </li>
-                </ul>
+            <div class="instructions-container">
+                <button class="instructions-toggle" onclick={toggle_instructions}>
+                    <span class="toggle-icon">
+                        {if *show_instructions { "▼" } else { "▶" }}
+                    </span>
+                    {"Game Instructions"}
+                </button>
+                
+                if *show_instructions {
+                    <div class="instructions">
+                        <ul>
+                            <li>{"Only the questions that can be answered with YES or NO are allowed."}</li>
+                            <li>{"If a question cannot be answered with a simple yes/no, the response will be UNABLE."}</li>
+                            <li>{ "Type: \""} <b> {"I'M LOSER"} </b> {"\", I'll reveal my identity and explain my answers." } </li>
+                        </ul>
+                    </div>
+                }
             </div>
         </>
     }

@@ -299,6 +299,38 @@ h1 {
   margin-bottom: 0;
 }
 
+.instructions-container {
+  max-width: 600px;
+  margin: 1rem auto 2rem auto;
+}
+
+.instructions-toggle {
+  appearance: none;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 8px;
+  color: var(--muted, #8a91a2);
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.instructions-toggle:hover {
+  background: rgba(255,255,255,.08);
+  border-color: rgba(255,255,255,.15);
+}
+
+.toggle-icon {
+  font-size: 0.8rem;
+  transition: transform 0.2s ease;
+}
+
 .note {
     margin: 1rem auto 2rem;
     display: flex;
