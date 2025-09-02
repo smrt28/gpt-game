@@ -1,13 +1,12 @@
 use std::cell::Cell;
 use std::rc::Rc;
-use std::slice::SliceIndex;
 use gloo_storage::{LocalStorage, Storage};
 use log::info;
-use yew::{function_component, html, use_effect, use_effect_with, use_reducer, use_state, Callback, Html, Properties};
-use crate::{board_component, use_navigator_expect, Route};
-use crate::com::{fetch_pending, fetch_text, send_question};
-use crate::ask_prompt_component::*;
-use crate::board_component::*;
+use yew::{function_component, html, use_effect_with, use_reducer, use_state, Callback, Html};
+use crate::{use_navigator_expect, Route};
+use crate::server_query::{fetch_text, send_question};
+use crate::ask_prompt_component::AskPrompt;
+use crate::board_component::{Act, Board, BoardState};
 use wasm_bindgen_futures::spawn_local;
 use shared::messages::{GameState, ServerResponse, Status};
 
@@ -16,41 +15,31 @@ use shared::messages::{GameState, ServerResponse, Status};
 
 #[function_component]
 pub fn Game() -> Html {
-    info!("Game");
+    info!("Game component loaded");
     let navigator = use_navigator_expect();
-    let version = use_state(|| { 0 });
-    let pending = use_state(|| { false });
-    let active_game = use_state(|| { false });
+    let version = use_state(|| 0);
+    let pending = use_state(|| false);
+    let active_game = use_state(|| false);
+    let board = use_reducer(BoardState::default);
 
-    let active_game_on_load = active_game.clone();
-    let active_game_render = active_game.clone();
-
-    let mut try_token = true;
-
-    let token: String = match LocalStorage::get("token") {
-        Ok(Some(token)) => token,
-        _ => {
-            try_token = false;
-            "".to_string()
-        }
+    let (token, has_token) = match LocalStorage::get::<String>("token") {
+        Ok(Some(token)) => (token, true),
+        _ => (String::new(), false),
     };
 
-    let board = use_reducer(BoardState::default);
     let on_send = {
         let token = token.clone();
         let version = version.clone();
         let pending = pending.clone();
         Callback::from(move |text: String| {
-            let version = version.clone();
-            let token = token.clone();
-            let pending = pending.clone();
+            let (token, version, pending) = (token.clone(), version.clone(), pending.clone());
             spawn_local(async move {
                 pending.set(true);
                 if let Err(e) = send_question(&token, &text).await {
-                    info!("error: {:?}", e);
+                    info!("Error sending question: {:?}", e);
                     return;
-                };
-                version.set(1 + *version);
+                }
+                version.set(*version + 1);
             });
         })
     };
@@ -60,44 +49,48 @@ pub fn Game() -> Html {
         let board = board.clone();
         let navigator = navigator.clone();
         let pending = pending.clone();
-        let ver = version.clone();
+        let active_game = active_game.clone();
 
-        move |curr_ver: &i32| {
-            let curr = *curr_ver;
+        move |_: &i32| {
             let cancelled = Rc::new(Cell::new(false));
             let cancel_for_task = cancelled.clone();
             let cancel_for_cleanup = cancelled.clone();
+            
             spawn_local(async move {
-                let guard = scopeguard::guard((), |_| {
+                let _guard = scopeguard::guard((), |_| {
                     pending.set(false);
                 });
 
+                if !has_token {
+                    info!("Missing token, cannot poll game state");
+                    active_game.set(false);
+                    return;
+                }
+
                 let mut quiet = 0;
                 let mut wait = 0;
-                let mut error = 0;
+                
                 loop {
-                    if !try_token {
-                        error = 10;
-                        info!("missing token");
-                        break;
+                    if cancel_for_task.get() { 
+                        break; 
                     }
-                    if cancel_for_task.get() { break; }
-                    info!("polling; iteration={}", curr);
-                    match fetch_text(&format!("/api/game/{token}?wait={wait}&quiet={quiet}")).await {
+                    
+                    let url = format!("/api/game/{token}?wait={wait}&quiet={quiet}");
+                    match fetch_text(&url).await {
                         Ok(res) => {
-                            let game_state = ServerResponse::<GameState>::from_response(res.as_str());
-
-                            match game_state {
+                            match ServerResponse::<GameState>::from_response(&res) {
                                 Ok(server_response) => {
                                     match server_response.status {
                                         Status::Ok => {
                                             if let Some(content) = server_response.content {
                                                 board.dispatch(Act::Update(content));
                                             }
+                                            active_game.set(true);
                                             break;
                                         }
                                         Status::Error => {
-                                            error = 1;
+                                            log::error!("Server returned error");
+                                            active_game.set(false);
                                             break;
                                         }
                                         Status::Pending => {
@@ -110,28 +103,21 @@ pub fn Game() -> Html {
                                         }
                                     }
                                 }
-                                Err(e) => {
-                                    error = 2;
+                                Err(_) => {
+                                    log::error!("Failed to parse server response");
+                                    active_game.set(false);
                                     break;
                                 }
                             }
-                        },
+                        }
                         Err(e) => {
-                            error = 3;
-                            log::error!("fetch /api/game failed: {e:?}");
+                            log::error!("Failed to fetch game state: {e:?}");
+                            active_game.set(false);
+                            board.dispatch(Act::InvalidGame);
                             break;
-                        },
+                        }
                     }
                     wait = 1;
-                } // loop
-
-                if error != 0 {
-                    active_game_on_load.set(false);
-                    log::info!("error polling: {}", error);
-                    navigator.push(&Route::Game);
-                    board.dispatch(Act::InvalidGame);
-                } else {
-                    active_game_on_load.set(true);
                 }
             });
 
@@ -139,22 +125,27 @@ pub fn Game() -> Html {
         }
     });
 
-    let navigator = navigator.clone();
-    let v2 = version.clone();
     let on_new_game = {
-        let v2 = v2.clone();
+        let version = version.clone();
+        let navigator = navigator.clone();
         Callback::from(move |_| {
-            let v2 = v2.clone();
-            let navigator = navigator.clone();
+            let (version, navigator) = (version.clone(), navigator.clone());
             spawn_local(async move {
                 match fetch_text("/api/game/new").await {
-                    Ok(token) => {
-                        v2.set(*v2 + 1);
-                        info!("new token: {token}");
-                        LocalStorage::set("token", &token).ok();
-                        navigator.push(&Route::Game);
+                    Ok(new_token) => {
+                        info!("Created new game with token: {new_token}");
+                        if LocalStorage::set("token", &new_token).is_ok() {
+                            version.set(*version + 1);
+                            navigator.push(&Route::Game);
+                        } else {
+                            log::error!("Failed to save token to localStorage");
+                            navigator.push(&Route::Error);
+                        }
                     }
-                    Err(_) => navigator.push(&Route::Error),
+                    Err(e) => {
+                        log::error!("Failed to create new game: {e:?}");
+                        navigator.push(&Route::Error);
+                    }
                 }
             });
         })
@@ -162,20 +153,17 @@ pub fn Game() -> Html {
 
     html! {
         <>
-        <h1>{ "Guess Who" }</h1>
-
-        <Board board={board.clone()}
-            on_new_game={on_new_game}/>
-
-        if *active_game_render {
-            <AskPrompt prompt={"I have a hidden identity. Try to guess who I am. Ask your question..."}
-                on_send={on_send}
-                disabled={*pending}
-                token={Some(token.clone())}
-            />
-        }
+            <h1>{"Guess Who"}</h1>
+            <Board board={board.clone()} on_new_game={on_new_game} />
+            
+            if *active_game {
+                <AskPrompt 
+                    prompt={"I have a hidden identity. Try to guess who I am. Ask your question..."}
+                    on_send={on_send}
+                    disabled={*pending}
+                    token={Some(token.clone())}
+                />
+            }
         </>
     }
-
-
 }

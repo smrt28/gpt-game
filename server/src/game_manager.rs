@@ -76,11 +76,13 @@ impl GameManager {
     }
 
     pub fn new_game(&self, target: &str) -> Token {
+
         let token = Token::new(TokenType::Game);
         let mut game = GameState::default();
         game.target = Some(target.to_string());
         self.game_states.insert(token.clone(), game);
         self.helpers.insert(token.clone(), StateHelper::default());
+        info!("new game: {}; {}", token.to_string(), target);
         token
     }
 
@@ -106,6 +108,9 @@ impl GameManager {
         let mut g = self.get_game(token)?;
         if g.pending_question.is_none() {
             return Ok(());
+        }
+        if answer.verdict == Some(Verdict::Final) {
+            g.game_ended = true;
         }
         let mut record = Record::new(g.pending_question.take().unwrap().text);
         record.set_answer(answer);

@@ -4,7 +4,7 @@ use gloo_storage::{LocalStorage, Storage};
 use log::info;
 use yew::{function_component, html, props, use_effect_with, use_state, Callback, Html, Properties};
 use crate::{Route};
-use crate::com::{fetch_pending, fetch_text, send_question};
+use crate::server_query::{fetch_pending, fetch_text, send_question};
 use crate::ask_prompt_component::*;
 use std::rc::Rc;
 use wasm_bindgen_futures::spawn_local;

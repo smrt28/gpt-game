@@ -3,7 +3,7 @@
 #![allow(unused_imports)]
 
 mod ask_prompt_component;
-mod com;
+mod server_query;
 mod game_component;
 mod board_component;
 mod to_html;
@@ -19,7 +19,7 @@ use gloo_storage::{LocalStorage, Storage};
 use wasm_bindgen::JsValue;
 use anyhow::{Context, Result};
 use log::kv::Source;
-use crate::com::*;
+use crate::server_query::*;
 use crate::game_component::*;
 
 struct SoftState {

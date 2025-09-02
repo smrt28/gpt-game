@@ -1,12 +1,15 @@
 debug=true
 root = "/gggame"
-
 [www]
-path = "/home/smrt/w/gpt-game/server/www"
+
 port = 3000
-frontend_path = "/home/smrt/w/gpt-game/frontend/dist"
+# path to server/www directory
+path = "/home/smrt/w/gpt-game/server/www"
+# path to wwweb dist directory
+dist = "/home/smrt/w/gpt-game/frontend/dist"
 
 [gpt]
+# path to server assets directory
 path = "/home/smrt/w/gpt-game/server/assets"
 instructions_file = "instructions.txt"
 key_file="/home/smrt/.gptkey"

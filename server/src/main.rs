@@ -48,31 +48,17 @@ impl PollableClientFactory::<GptClient> for GptClientFactory {
     }
 }
 
-fn app_root() -> PathBuf {
-    #[cfg(debug_assertions)]
-    let res = {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-    };
-    #[cfg(not(debug_assertions))]
-    let res = {
-        PathBuf::from(std::env::var("APP_ROOT")
-            .expect("APP_ROOT env var must be set in release builds"))
-    };
-
-    info!("config: {:?}", res);
-    res
-}
 
 fn read_config() -> Result<config::Config, anyhow::Error> {
     #[cfg(not(debug_assertions))]
     let config = {
         let args: Vec<String> = env::args().collect();
-        config::Config::read(args.get(1)?)?;
+        config::Config::read(args.get(1).expect("config file path must be passed as first argument"))?
     };
 
     #[cfg(debug_assertions)]
     let config = {
-        let config_file = app_root()
+        let config_file = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("assets")
             .join("config.toml");
         config::Config::read(config_file.to_str().unwrap())?

@@ -19,7 +19,7 @@ pub struct Config {
 pub struct Www {
     pub port: u16,
     pub path: String,
-    pub frontend_path: String,
+    pub dist: String,
 }
 
 

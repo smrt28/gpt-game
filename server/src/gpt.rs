@@ -185,10 +185,7 @@ struct RequestBody<'a> {
             max_output_tokens: params.max_output_tokens,
             text: json!({ "verbosity": params.verbosity.to_string() }),
         };
-        info!("asking...1");
         let body = serde_json::to_value(&body)?;
-
-        info!("asking...2");
         let resp = self.client
             .post("https://api.openai.com/v1/responses")
             .header(CONTENT_TYPE, "application/json")
@@ -205,18 +202,14 @@ struct RequestBody<'a> {
             }
         };
 
-        info!("asking...3");
         let status = resp.status();
-        info!("asking...4");
         let bytes = resp.bytes().await.context("reading body failed")?;
-        info!("asking...5");
         if !status.is_success() {
             let text = String::from_utf8_lossy(&bytes);
             error!("OpenAI error {}: {}", status, text);
             anyhow::bail!("OpenAI error {}: {}", status, text);
         }
 
-        info!("got responseX");
         Ok(Answer::from_bytes(&bytes)?)
     }
 }

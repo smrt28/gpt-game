@@ -141,11 +141,11 @@ pub async fn run_server(
     let static_svc = ServiceBuilder::new()
         .layer(logging())
         .service(
-            ServeDir::new(&config.www.frontend_path)
+            ServeDir::new(&config.www.dist)
                 .append_index_html_on_directories(true)
                 .precompressed_br()
                 .precompressed_gzip()
-                .not_found_service(ServeFile::new(PathBuf::new().join(&config.www.frontend_path).join("index.html")))
+                .not_found_service(ServeFile::new(PathBuf::new().join(&config.www.dist).join("index.html")))
         );
 
     app = app.nest_service("/run", static_svc);
