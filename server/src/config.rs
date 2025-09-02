@@ -7,18 +7,14 @@ use log::error;
 #[derive(Deserialize, Debug, Clone)]
 pub struct Config {
     pub debug: bool,
-    pub root: String,
     pub www: Www,
     pub gpt: Gpt,
-
-
-
 }
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Www {
     pub port: u16,
-    pub path: String,
+    pub www: String,
     pub dist: String,
 }
 
@@ -47,7 +43,7 @@ impl PathBuilder {
 
     fn join(mut self, path: &str) -> Self {
         if path.starts_with('/') {
-            self.0 = PathBuf::new();            
+            self.0 = PathBuf::new();
         }
         self.0.push(path);
         self
@@ -61,7 +57,6 @@ impl PathBuilder {
 impl Config {
     fn get_path(&self, component: &str, file: &str) -> PathBuf {
         PathBuilder::new()
-            .join(&self.root)
             .join(component)
             .join(file)
             .build()

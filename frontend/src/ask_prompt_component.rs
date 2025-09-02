@@ -1,4 +1,4 @@
-use yew::{function_component, html, use_node_ref, Callback, Html, Properties};
+use yew::{function_component, html, use_effect_with, use_node_ref, Callback, Html, Properties};
 use web_sys::{KeyboardEvent, Event};
 
 #[derive(Properties, PartialEq)]
@@ -27,6 +27,7 @@ pub fn ask_prompt(props: &Props) -> Html {
                 let value = el.value();
                 on_send.emit(value);
                 el.set_value(""); // clear it
+                let _ = el.focus(); // keep focus
             }
         }
     };
@@ -49,6 +50,18 @@ pub fn ask_prompt(props: &Props) -> Html {
             }
         })
     };
+
+    // Focus textarea when it becomes enabled
+    use_effect_with(props.disabled, {
+        let textarea_ref = textarea_ref.clone();
+        move |disabled| {
+            if !disabled {
+                if let Some(el) = textarea_ref.cast::<web_sys::HtmlTextAreaElement>() {
+                    let _ = el.focus();
+                }
+            }
+        }
+    });
    
     html! {
         <div class="ask-prompt">

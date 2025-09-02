@@ -129,7 +129,7 @@ pub async fn run_server(
     let static_svc = ServiceBuilder::new()
         .layer(logging())
         .service(
-            ServeDir::new(&config.www.path)
+            ServeDir::new(&config.www.www)
                 .append_index_html_on_directories(true)
                 .precompressed_br()
                 .precompressed_gzip(),
