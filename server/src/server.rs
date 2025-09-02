@@ -13,7 +13,7 @@ use std::net::SocketAddr;
 use std::ops::Deref;
 use std::path::PathBuf;
 use std::sync::Arc;
-use axum::response::{Html, IntoResponse};
+use axum::response::{Html, IntoResponse, Redirect};
 use tokio::{net::TcpListener, sync::Mutex};
 use std::sync::Mutex as StdMutex;
 use std::time::Duration;
@@ -103,8 +103,12 @@ fn logging() -> TraceLayer<SharedClassifier<ServerErrorsAsFailures>> {
     TraceLayer::new_for_http()
         .make_span_with(DefaultMakeSpan::new().level(Level::INFO))
         .on_request(DefaultOnRequest::new().level(Level::INFO))
-        .on_response(DefaultOnResponse::new().level(Level::INFO))
+        .on_response(DefaultOnResponse::new().level(Level::DEBUG))
         .on_failure(DefaultOnFailure::new().level(Level::ERROR))
+}
+
+async fn redirect_to_game() -> Redirect {
+    Redirect::to("/run/game")
 }
 
 pub async fn run_server(
@@ -118,9 +122,9 @@ pub async fn run_server(
         .route("/api/game/new", get(new_game))
         .route("/api/game/{token}/ask", post(ask))
         .route("/api/game/{token}", get(game))
+        .route("/", get(redirect_to_game))
         .fallback(get(handler_404))
         ;
-
 
     let static_svc = ServiceBuilder::new()
         .layer(logging())

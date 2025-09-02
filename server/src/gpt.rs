@@ -212,6 +212,7 @@ struct RequestBody<'a> {
         info!("asking...5");
         if !status.is_success() {
             let text = String::from_utf8_lossy(&bytes);
+            error!("OpenAI error {}: {}", status, text);
             anyhow::bail!("OpenAI error {}: {}", status, text);
         }
 
