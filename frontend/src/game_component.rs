@@ -168,7 +168,7 @@ pub fn Game() -> Html {
             on_new_game={on_new_game}/>
 
         if *active_game_render {
-            <AskPrompt prompt={"I'm someone or something, guess who I'm. Your question is:"}
+            <AskPrompt prompt={"I have a hidden identity. Try to guess who I am. Ask your question..."}
                 on_send={on_send}
                 disabled={*pending}
                 token={Some(token.clone())}

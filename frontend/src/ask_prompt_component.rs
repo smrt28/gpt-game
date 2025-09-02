@@ -38,6 +38,7 @@ pub fn ask_prompt(props: &Props) -> Html {
                 <label for="ask-text">{ p }</label>
             }
             <textarea
+                rows="2"
                 id="ask-text"
                 ref={textarea_ref}
                 disabled={props.disabled}
