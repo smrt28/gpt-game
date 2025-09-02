@@ -23,7 +23,7 @@ pub fn Game() -> Html {
     let board = use_reducer(BoardState::default);
 
     let (token, has_token) = match LocalStorage::get::<String>("token") {
-        Ok(Some(token)) => (token, true),
+        Ok(token) => (token, true),
         _ => (String::new(), false),
     };
 
@@ -154,8 +154,9 @@ pub fn Game() -> Html {
     html! {
         <>
             <h1>{"Guess Who"}</h1>
+
             <Board board={board.clone()} on_new_game={on_new_game} />
-            
+
             if *active_game {
                 <AskPrompt 
                     prompt={"I have a hidden identity. Try to guess who I am. Ask your question..."}
@@ -164,6 +165,14 @@ pub fn Game() -> Html {
                     token={Some(token.clone())}
                 />
             }
+
+             <div class="instructions">
+                <ul>
+                    <li>{"Only the questions that can be answered with YES or NO are allowed."}</li>
+                    <li>{"If a question cannot be answered with a simple yes/no, the response will be UNABLE."}</li>
+                    <li>{ "Type: \""} <b> {"I'M LOSER"} </b> {"\", I’ll reveal my identity and explain my answers." } </li>
+                </ul>
+            </div>
         </>
     }
 }

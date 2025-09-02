@@ -1,4 +1,5 @@
 use yew::{function_component, html, use_node_ref, Callback, Html, Properties};
+use web_sys::{KeyboardEvent, Event};
 
 #[derive(Properties, PartialEq)]
 pub struct Props {
@@ -18,17 +19,37 @@ pub struct Props {
 pub fn ask_prompt(props: &Props) -> Html {
     let on_send = props.on_send.clone();
     let textarea_ref = use_node_ref();
-    let onclick = {
+    let send_message = {
         let textarea_ref = textarea_ref.clone();
-        Callback::from(move |_| {
+        let on_send = on_send.clone();
+        move || {
             if let Some(el) = textarea_ref.cast::<web_sys::HtmlTextAreaElement>() {
                 let value = el.value();
                 on_send.emit(value);
                 el.set_value(""); // clear it
             }
+        }
+    };
+
+    let onclick = {
+        let send_message = send_message.clone();
+        Callback::from(move |_| {
+            send_message();
         })
     };
 
+    let onkeydown = {
+        let send_message = send_message.clone();
+        Callback::from(move |e: KeyboardEvent| {
+            if e.key() == "Enter" {
+                e.prevent_default();
+                if !e.shift_key() && !e.ctrl_key() {
+                    send_message();
+                }
+            }
+        })
+    };
+   
     html! {
         <div class="ask-prompt">
             if let Some(token) = &props.token {
@@ -38,11 +59,13 @@ pub fn ask_prompt(props: &Props) -> Html {
                 <label for="ask-text">{ p }</label>
             }
             <textarea
-                rows="2"
+                rows="1"
                 id="ask-text"
                 ref={textarea_ref}
                 disabled={props.disabled}
                 maxlength={props.max_len.to_string()}
+                wrap="off"
+                {onkeydown}
             />
             <button {onclick} disabled={props.disabled}>{ "Send" }</button>
         </div>

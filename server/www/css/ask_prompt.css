@@ -116,7 +116,7 @@ html, body {
 /* ASK */
 /* Prompt container */
 .ask-prompt {
-    max-width: 1000px;
+    max-width: 800px;
     display: grid;
     gap: 8px;
     background: var(--surface, #141925);
@@ -262,7 +262,7 @@ h1 {
   font-size: 3rem;             /* Big and bold */
   font-weight: 700;
   text-align: center;
-  margin: 1rem 0 2rem 0;
+  margin: 1rem 0 1rem 0;
 
   color: #ffcc00;              /* Yellowish pop */
   text-shadow: 2px 2px 0 #000, /* Outline shadow */
@@ -270,6 +270,33 @@ h1 {
 
   letter-spacing: 0.05em;      /* Slight spacing */
   text-transform: uppercase;   /* Loud */
+}
+
+.instructions {
+  max-width: 600px;
+  margin: 0 auto 2rem auto;
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--muted, #8a91a2);
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: var(--radius, 16px);
+  backdrop-filter: blur(4px);
+}
+
+.instructions ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  text-align: left;
+}
+
+.instructions li {
+  margin-bottom: 0.5rem;
+}
+
+.instructions li:last-child {
+  margin-bottom: 0;
 }
 
 .note {

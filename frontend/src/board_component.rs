@@ -93,11 +93,7 @@ pub fn board(props: &BoardProps) -> Html {
                 }
             } else {
                 html! {
-                <div class="note">
-                    <span>
-                  { "Type: \""} <b> {"I'M LOSER"} </b> {"\", I’ll reveal my identity and explain my answers." }
-                    </span>
-                </div>
+
                 }
             }}
         </div>
