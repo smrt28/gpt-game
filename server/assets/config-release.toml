@@ -1,0 +1,16 @@
+debug=true
+[www]
+
+port = 3000
+# path to server/www directory
+www = "/gpt-game-deploy/pkg/www"
+# path to wwweb dist directory
+dist = "/gpt-game-deploy/pkg/dist"
+
+[gpt]
+# path to server assets directory
+path = "/gpt-game-deploy/pkg/assets"
+instructions_file = "instructions.txt"
+key_file="/gpt-game-deploy/gptkey"
+max_clients_count=15
+
