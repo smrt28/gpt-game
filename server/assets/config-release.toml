@@ -14,3 +14,5 @@ instructions_file = "instructions.txt"
 key_file="/gpt-game-deploy/gptkey"
 max_clients_count=15
 
+identities_file_cs="identities_cs.txt"
+identities_file_en="identities_en.txt"

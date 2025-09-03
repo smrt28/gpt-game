@@ -343,9 +343,14 @@ async fn new_game(State(state): State<Shared>,
                   Query(game_params): Query<NewGameParam>,
 
 ) -> String {
-    let game_token = state.game_manager.new_game(
-        crate::built_in_options::random_identity(),
-        game_params.get_language())
+
+    let identity = crate::locale::get_random_identity(&game_params.get_language())
+        .unwrap_or_else(|| {
+            log::warn!("No identities available for language {:?}, falling back to built-in", game_params.get_language());
+            crate::built_in_options::random_identity().to_string()
+        });
+    
+    let game_token = state.game_manager.new_game(&identity, game_params.get_language())
         .to_string();
 
     info!("new-game-created-for {}: {}", addr, game_token);

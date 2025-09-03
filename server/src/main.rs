@@ -104,7 +104,7 @@ async fn main() -> Result<()> {
     }
     
     // Initialize locale system
-    locale::init_locale();
+    locale::init_locale(&config);
     
     run_server(&config, Arc::new(GptClientFactory::new(&config))).await?;
     Ok(())

@@ -23,16 +23,20 @@ pub struct Www {
 #[derive(Deserialize, Debug, Clone)]
 pub struct Gpt {
     pub path: String,
+
     pub instructions_file: String,
     pub key_file: String,
     pub max_clients_count: u32,
 
+    pub identities_file_cs: String,
+    pub identities_file_en: String,
 
     #[serde(skip)]
     pub gpt_instructions: String,
     #[serde(skip)]
     pub gpt_key: String,
 }
+
 
 #[derive(Default)]
 struct PathBuilder(PathBuf);
@@ -56,6 +60,16 @@ impl PathBuilder {
 }
 
 impl Config {
+
+    pub fn get_identities_file(&self, lang: &shared::locale::Language) -> PathBuf {
+        let filename = match lang {
+            shared::locale::Language::English => self.gpt.identities_file_en.clone(),
+            shared::locale::Language::Czech => self.gpt.identities_file_cs.clone(),
+        };
+        
+        self.get_path(&self.gpt.path, &filename)         
+    }
+
     fn get_path(&self, component: &str, file: &str) -> PathBuf {
         PathBuilder::new()
             .join(component)
