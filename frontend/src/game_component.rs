@@ -4,7 +4,7 @@ use gloo_storage::{LocalStorage, Storage};
 use log::info;
 use yew::{function_component, html, use_effect_with, use_reducer, use_state, Callback, Html};
 use crate::{use_navigator_expect, Route};
-use crate::server_query::{fetch_text, send_question};
+use crate::server_query::{fetch_new_game_token, fetch_text, send_question};
 use crate::ask_prompt_component::AskPrompt;
 use crate::board_component::{Act, Board, BoardState};
 use crate::locale::{t, tf, get_current_language, set_language};
@@ -41,6 +41,7 @@ pub fn Game() -> Html {
             let (token, version, pending) = (token.clone(), version.clone(), pending.clone());
             spawn_local(async move {
                 pending.set(true);
+
                 if let Err(e) = send_question(&token, &text).await {
                     info!("Error sending question: {:?}", e);
                     return;
@@ -137,7 +138,8 @@ pub fn Game() -> Html {
         Callback::from(move |_| {
             let (version, navigator) = (version.clone(), navigator.clone());
             spawn_local(async move {
-                match fetch_text("/api/game/new").await {
+                info!("Creating new game, lang={}", get_current_language().to_code());
+                match fetch_new_game_token().await {
                     Ok(new_token) => {
                         info!("Created new game with token: {new_token}");
                         if LocalStorage::set("token", &new_token).is_ok() {

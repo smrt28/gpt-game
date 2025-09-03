@@ -64,12 +64,12 @@ where
 }
 
 #[derive(Deserialize)]
-struct AskParam {
+struct NewGameParam {
     #[serde(default)]
     lang: Option<String>,
 }
 
-impl AskParam {
+impl NewGameParam {
     fn get_language(&self) -> Language {
         match &self.lang {
             Some(lang) => {
@@ -264,21 +264,21 @@ fn is_cheat(s: &str) -> bool {
 
 async fn ask(
     State(state): State<Shared>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Path(token_str): Path<String>,
-    Query(_query): Query<AskParam>,
     body: Bytes,
 ) -> Result<String, AppError> {
     let token = Token::from_string(token_str.as_str()).map_err(|e| {
-        warn!("invalid token: {} - {}", token_str, e);
+        warn!("invalid token from {}: {} - {}", addr, token_str, e);
         e
     })?;
 
     let Some(question) = sanitize_question(&String::from_utf8_lossy(&body).to_string()) else {
-        info!("invalid question ({})", token_str);
+        info!("invalid question from {} ({})", addr, token_str);
         return Err(AppError::InvalidToken);
     };
 
-    info!("question ({}): \"{}\"", token_str, question);
+    info!("question from {} ({}): \"{}\"", addr, token_str, question);
 
     let mut gpt_client = state.client_factory.pop();
     gpt_client.update().await.unwrap();
@@ -298,20 +298,20 @@ async fn ask(
     tokio::spawn(async move {
 
         if is_cheat(&question) {
-            info!("cheat detected ({}): \"{}\"", token_str, question);
+            info!("cheat detected from {} ({}): \"{}\"", addr, token_str, question);
             let answer = shared::messages::Answer::get_lose(&question_builder.get_target());
             let _ = state.game_manager.answer_pending_question(&token, &answer);
             let _ = state.game_manager.finish_game(&token);
             return
         }
 
-        info!("sending question to GPT ({}): \"{}\"", token_str, question);
+        info!("sending question to GPT for {} ({}): \"{}\"", addr, token_str, question);
         let result = gpt_client.client().ask(&question_builder.build_question(),
                                              &question_builder.build_params(&state.config)).await;
 
         match result {
             Ok(gpt_answer) => {
-                info!("GPT response received OK ({})", token_str);
+                info!("GPT response received OK for {} ({})", addr, token_str);
 
                 let s = gpt_answer.to_string().unwrap_or("UNABLE; this is weird".to_string());
 
@@ -319,7 +319,7 @@ async fn ask(
                 let _ = state.game_manager.answer_pending_question(&token, &answer);
             }
             Err(err) => {
-                info!("GPT response ERROR ({}): {}", token_str, err);
+                info!("GPT response ERROR for {} ({}): {}", addr, token_str, err);
                 let _ = state.game_manager.handle_error_response(&token,
                        GameError::GPTError(err.to_string()));
             }
@@ -339,8 +339,15 @@ async fn index(State(_state): State<Shared>,
 
 
 async fn new_game(State(state): State<Shared>,
-               ConnectInfo(addr): ConnectInfo<SocketAddr>) -> String {
-    let game_token = state.game_manager.new_game(crate::built_in_options::random_identity()).to_string();
-    info!("new game created for {}: {}", addr, game_token);
+                  ConnectInfo(addr): ConnectInfo<SocketAddr>,
+                  Query(game_params): Query<NewGameParam>,
+
+) -> String {
+    let game_token = state.game_manager.new_game(
+        crate::built_in_options::random_identity(),
+        game_params.get_language())
+        .to_string();
+
+    info!("new-game-created-for {}: {}", addr, game_token);
     game_token
 }

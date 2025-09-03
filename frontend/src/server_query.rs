@@ -2,6 +2,7 @@ use std::time::Duration;
 use gloo::net::http::Request;
 use log::info;
 use serde_json::{Result, Value};
+use crate::locale::get_current_language;
 
 pub async fn fetch_text(path: &str) -> anyhow::Result<String> {
     info!("fetching: {}", path);
@@ -45,3 +46,7 @@ pub async fn send_question(token: &str, text: &str) -> anyhow::Result<String> {
 }
 
 
+pub async fn fetch_new_game_token() -> anyhow::Result<String> {
+    let code = get_current_language().to_code();
+    fetch_text(&format!("/api/game/new?lang={}", code)).await
+}

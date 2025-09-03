@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use std::collections::HashMap;
+use log::info;
 use shared::locale::Language;
 use wasm_bindgen::prelude::*;
 
@@ -186,6 +187,7 @@ pub fn get_current_language() -> Language {
 }
 
 pub fn set_language(lang: Language) {
+    info!("set language to: {:?} (code: {})", lang, lang.to_code());
     LOCALE_MANAGER.with(|manager| manager.borrow_mut().set_language(lang));
 }
 

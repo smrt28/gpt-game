@@ -5,6 +5,7 @@ use serde_with::skip_serializing_none;
 use log::{error, info};
 use serde::de::DeserializeOwned;
 use time::OffsetDateTime;
+use crate::locale::Language;
 
 //use serde_with::{serde_as, TimestampMilliSeconds}; // or use Rfc3339
 /*
@@ -59,6 +60,8 @@ pub struct GameState {
     #[serde(skip_serializing)]
     pub target: Option<String>,
     pub game_ended: bool,
+
+    pub lang: Language,
 }
 
 
@@ -71,6 +74,7 @@ impl Default for GameState {
             error: None,
             target: None,
             game_ended: false,
+            lang: Language::English,
         }
     }
 }

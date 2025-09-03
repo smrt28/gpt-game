@@ -3,6 +3,7 @@ use tower::util::Either;
 use crate::app_error::AppError;
 use crate::gpt::QuestionParams;
 use crate::config::Config;
+use shared::locale::Language;
 
 
 #[derive(Debug, Clone)]
@@ -10,7 +11,6 @@ pub struct GameStepBuilder {
     original_question: Option<String>,
     question: Option<String>,
     target: Option<String>,
-
 }
 
 
@@ -72,6 +72,3 @@ impl GameStepBuilder {
         self.question.clone().unwrap()
     }
 }
-
-
-

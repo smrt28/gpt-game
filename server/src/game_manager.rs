@@ -11,6 +11,8 @@ use shared::messages::*;
 use crate::app_error::AppError;
 use tokio::sync::Notify;
 use tokio::time::{self, Instant};
+use shared::locale::Language;
+
 pub fn sanitize_question(question: &String) -> Option<String> {
     if question.len() > 120 {
         return None;
@@ -75,14 +77,14 @@ impl GameManager {
         Ok(())
     }
 
-    pub fn new_game(&self, target: &str) -> Token {
-
+    pub fn new_game(&self, identity: &str, lang: Language) -> Token {
         let token = Token::new(TokenType::Game);
         let mut game = GameState::default();
-        game.target = Some(target.to_string());
+        game.lang = lang.clone();
+        game.target = Some(identity.to_string());
         self.game_states.insert(token.clone(), game);
         self.helpers.insert(token.clone(), StateHelper::default());
-        info!("new game: {}; {}", token.to_string(), target);
+        info!("new game: {}; {}; lang={}", token.to_string(), identity, &lang.to_code());
         token
     }
 
