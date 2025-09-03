@@ -31,8 +31,9 @@ use crate::gpt::*;
 use shared::shared_error::*;
 use tokio::time::timeout;
 use tower_http::services::{ServeDir, ServeFile};
-use tower_http::trace::{DefaultMakeSpan, DefaultOnFailure, DefaultOnRequest, DefaultOnResponse, TraceLayer};
-use tracing::{info, Level};
+use tower_http::trace::{DefaultMakeSpan, DefaultOnFailure, DefaultOnRequest, DefaultOnResponse, TraceLayer, MakeSpan};
+use tracing::{info, warn, error, debug, Level, Span};
+use tower_http::trace::OnRequest;
 use tracing_subscriber::fmt::layer;
 use tower_http::classify::{ServerErrorsAsFailures, SharedClassifier};
 use tower::ServiceBuilder;
@@ -101,9 +102,20 @@ type Shared = Arc<AppState>;
 
 fn logging() -> TraceLayer<SharedClassifier<ServerErrorsAsFailures>> {
     TraceLayer::new_for_http()
-        .make_span_with(DefaultMakeSpan::new().level(Level::INFO))
-        .on_request(DefaultOnRequest::new().level(Level::INFO))
-        .on_response(DefaultOnResponse::new().level(Level::DEBUG))
+        .make_span_with(
+            DefaultMakeSpan::new()
+                .level(Level::INFO)
+                .include_headers(true)
+        )
+        .on_request(
+            DefaultOnRequest::new()
+                .level(Level::INFO)
+        )
+        .on_response(
+            DefaultOnResponse::new()
+                .level(Level::INFO)
+                .include_headers(false)
+        )
         .on_failure(DefaultOnFailure::new().level(Level::ERROR))
 }
 
@@ -158,40 +170,49 @@ pub async fn run_server(
         .layer(logging());
 
     let addr = SocketAddr::from(([127, 0, 0, 1], config.www.port));
-    let listener = TcpListener::bind(addr).await?;
+    let listener = TcpListener::bind(addr).await.context("Failed to bind to address")?;
+
+    info!("server bound to {} - ready to accept connections", addr);
 
     axum::serve(
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),
     )
-    .await?;
+    .await
+    .context("Server error")?;
+
+    info!("server shutting down");
     Ok(())
 }
 
 async fn handler_404() -> impl IntoResponse {
+    info!("404 - route not found");
     (StatusCode::NOT_FOUND, "Not found")
 }
 
 
 async fn game(State(state): State<Shared>,
-                      ConnectInfo(_addr): ConnectInfo<SocketAddr>,
+                      ConnectInfo(addr): ConnectInfo<SocketAddr>,
                       Path(token_str): Path<String>,
                       Query(query): Query<WaitParam>
 
 ) -> Result<String, AppError> {
-    info!("game");
+    info!("game request from {}, token: {}", addr, token_str);
     query.check()?;
-    let token = Token::from_string(token_str.as_str())?;
+    let token = Token::from_string(token_str.as_str()).map_err(|e| {
+        warn!("invalid token from {}: {} - {}", addr, token_str, e);
+        e
+    })?;
     let pending = state.game_manager.is_pending(&token)?;
 
     if pending && query.wait == 1 {
-        info!("waiting");
+        info!("client {} waiting for answer on token {}", addr, token_str);
         let res = state.game_manager.wait_for_answer(&token, Duration::new(5, 0)).await;
         if res.is_err() {
-            info!("answer not ready, reason={}", res.as_ref().unwrap_err());
+            info!("answer not ready for {} ({}), reason={}", addr, token_str, res.as_ref().unwrap_err());
             res?;
         }
-        info!("ready");
+        info!("answer ready for {} ({})", addr, token_str);
     }
 
     let status = if pending {Status::Pending} else {Status::Ok};
@@ -223,15 +244,21 @@ fn is_cheat(s: &str) -> bool {
 
 async fn ask(
     State(state): State<Shared>,
-    ConnectInfo(_addr): ConnectInfo<SocketAddr>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Path(token_str): Path<String>,
     body: Bytes,
 ) -> Result<String, AppError> {
-    let token = Token::from_string(token_str.as_str())?;
+    let token = Token::from_string(token_str.as_str()).map_err(|e| {
+        warn!("invalid token from {}: {} - {}", addr, token_str, e);
+        e
+    })?;
 
     let Some(question) = sanitize_question(&String::from_utf8_lossy(&body).to_string()) else {
+        info!("invalid question from {} ({})", addr, token_str);
         return Err(AppError::InvalidToken);
     };
+
+    info!("question from {} ({}): \"{}\"", addr, token_str, question);
 
     let mut gpt_client = state.client_factory.pop();
     gpt_client.update().await.unwrap();
@@ -251,19 +278,20 @@ async fn ask(
     tokio::spawn(async move {
 
         if is_cheat(&question) {
+            info!("cheat detected from {} ({}): \"{}\"", addr, token_str, question);
             let answer = shared::messages::Answer::get_lose(&question_builder.get_target());
             let _ = state.game_manager.answer_pending_question(&token, &answer);
             let _ = state.game_manager.finish_game(&token);
             return
         }
 
-        info!("got client, asking: {}", question);
+        info!("sending question to GPT for {} ({}): \"{}\"", addr, token_str, question);
         let result = gpt_client.client().ask(&question_builder.build_question(),
                                              &question_builder.build_params(&state.config)).await;
 
         match result {
             Ok(gpt_answer) => {
-                info!("answer received; OK");
+                info!("GPT response received OK for {} ({})", addr, token_str);
 
                 let s = gpt_answer.to_string().unwrap_or("UNABLE; this is weird".to_string());
 
@@ -271,7 +299,7 @@ async fn ask(
                 let _ = state.game_manager.answer_pending_question(&token, &answer);
             }
             Err(err) => {
-                info!("answer received; ERR");
+                info!("GPT response ERROR for {} ({}): {}", addr, token_str, err);
                 let _ = state.game_manager.handle_error_response(&token,
                        GameError::GPTError(err.to_string()));
             }
@@ -283,12 +311,16 @@ async fn ask(
 }
 
 async fn index(State(_state): State<Shared>,
-             ConnectInfo(_addr): ConnectInfo<SocketAddr>) -> String {
-    Token::new(TokenType::Answer).to_string()
+             ConnectInfo(addr): ConnectInfo<SocketAddr>) -> String {
+    let token = Token::new(TokenType::Answer).to_string();
+    info!("token request from {}: {}", addr, token);
+    token
 }
 
 
 async fn new_game(State(state): State<Shared>,
-               ConnectInfo(_addr): ConnectInfo<SocketAddr>) -> String {
-    state.game_manager.new_game(crate::built_in_options::random_identity()).to_string()
+               ConnectInfo(addr): ConnectInfo<SocketAddr>) -> String {
+    let game_token = state.game_manager.new_game(crate::built_in_options::random_identity()).to_string();
+    info!("new game created for {}: {}", addr, game_token);
+    game_token
 }
