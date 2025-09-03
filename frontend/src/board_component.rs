@@ -13,7 +13,7 @@ use yew::prelude::*;
 use yew_router::hooks::use_navigator;
 use shared::messages::GameState;
 use crate::game_component::Game;
-
+use crate::locale::{t};
 #[derive(Clone, PartialEq, Default)]
 pub struct BoardState {
     game: Option<GameState>,
@@ -67,6 +67,7 @@ pub fn board(props: &BoardProps) -> Html {
 
     let mut game_ended = false;
 
+
     let game_board_html = if let Some(game_board) = &props.board.game {
         if game_board.game_ended {
             game_ended = true;
@@ -88,7 +89,7 @@ pub fn board(props: &BoardProps) -> Html {
             { if game_ended {
                 html! {
                   <div class="button-row">
-                    <button class="new-game" {onclick}>{ "New game" }</button>
+                    <button class="new-game" {onclick}>{ t("ui.new_game") }</button>
                   </div>
                 }
             } else {

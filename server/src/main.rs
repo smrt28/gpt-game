@@ -25,6 +25,7 @@ mod token_gen;
 mod game_prompt;
 mod built_in_options;
 mod config;
+mod locale;
 
 struct GptClientFactory {
     config: Gpt,
@@ -101,6 +102,9 @@ async fn main() -> Result<()> {
             info!("logging to stdout");
         }
     }
+    
+    // Initialize locale system
+    locale::init_locale();
     
     run_server(&config, Arc::new(GptClientFactory::new(&config))).await?;
     Ok(())

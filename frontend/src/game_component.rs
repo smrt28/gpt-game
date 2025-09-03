@@ -7,6 +7,8 @@ use crate::{use_navigator_expect, Route};
 use crate::server_query::{fetch_text, send_question};
 use crate::ask_prompt_component::AskPrompt;
 use crate::board_component::{Act, Board, BoardState};
+use crate::locale::{t, tf, get_current_language, set_language};
+use shared::locale::Language;
 use wasm_bindgen_futures::spawn_local;
 use shared::messages::{GameState, ServerResponse, Status};
 
@@ -21,6 +23,9 @@ pub fn Game() -> Html {
     let pending = use_state(|| false);
     let active_game = use_state(|| false);
     let show_instructions = use_state(|| true);
+    let language_version = use_state(|| 0); // For triggering re-renders when language changes
+    let show_language_dialog = use_state(|| false);
+    let pending_language = use_state(|| None::<Language>);
     let board = use_reducer(BoardState::default);
 
     let (token, has_token) = match LocalStorage::get::<String>("token") {
@@ -159,15 +164,109 @@ pub fn Game() -> Html {
         })
     };
 
+    let on_language_change = {
+        let language_version = language_version.clone();
+        let active_game = active_game.clone();
+        let show_language_dialog = show_language_dialog.clone();
+        let pending_language = pending_language.clone();
+        Callback::from(move |lang: Language| {
+            if *active_game {
+                // Show confirmation dialog if game is active
+                pending_language.set(Some(lang));
+                show_language_dialog.set(true);
+            } else {
+                // Switch language immediately if no game is active
+                set_language(lang);
+                language_version.set(*language_version + 1);
+            }
+        })
+    };
+
+    let on_confirm_language_change = {
+        let language_version = language_version.clone();
+        let show_language_dialog = show_language_dialog.clone();
+        let pending_language = pending_language.clone();
+        let board = board.clone();
+        let active_game = active_game.clone();
+        Callback::from(move |confirm: bool| {
+            show_language_dialog.set(false);
+            if confirm {
+                if let Some(lang) = (*pending_language).clone() {
+                    set_language(lang);
+                    language_version.set(*language_version + 1);
+                    // Clear the token and invalidate the game state
+                    let _ = LocalStorage::delete("token");
+                    board.dispatch(Act::InvalidGame);
+                    active_game.set(false);
+                }
+            }
+            pending_language.set(None);
+        })
+    };
+
+    let current_language = get_current_language();
+
     html! {
         <>
-            <h1>{"Guess Who"}</h1>
+            <div class="language-selector">
+                <button 
+                    class={if current_language == Language::English { "flag-button active" } else { "flag-button" }}
+                    onclick={
+                        let on_language_change = on_language_change.clone();
+                        Callback::from(move |_| on_language_change.emit(Language::English))
+                    }
+                    title="English"
+                >
+                    {"🇬🇧"}
+                </button>
+                <button 
+                    class={if current_language == Language::Czech { "flag-button active" } else { "flag-button" }}
+                    onclick={
+                        let on_language_change = on_language_change.clone();
+                        Callback::from(move |_| on_language_change.emit(Language::Czech))
+                    }
+                    title="Česky"
+                >
+                    {"🇨🇿"}
+                </button>
+            </div>
+
+            // Language confirmation dialog
+            if *show_language_dialog {
+                <div class="dialog-overlay">
+                    <div class="dialog-box">
+                        <p class="dialog-message">{t("dialog.confirm_language_switch")}</p>
+                        <div class="dialog-buttons">
+                            <button 
+                                class="dialog-button dialog-button--yes"
+                                onclick={
+                                    let on_confirm = on_confirm_language_change.clone();
+                                    Callback::from(move |_| on_confirm.emit(true))
+                                }
+                            >
+                                {t("dialog.yes")}
+                            </button>
+                            <button 
+                                class="dialog-button dialog-button--no"
+                                onclick={
+                                    let on_confirm = on_confirm_language_change.clone();
+                                    Callback::from(move |_| on_confirm.emit(false))
+                                }
+                            >
+                                {t("dialog.no")}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <h1>{t("ui.game_header")}</h1>
 
             <Board board={board.clone()} on_new_game={on_new_game} />
 
             if *active_game {
                 <AskPrompt 
-                    prompt={"I have a hidden identity. Try to guess who I am. Ask your question..."}
+                    prompt={t("game.prompt")}
                     on_send={on_send}
                     disabled={*pending}
                     token={Some(token.clone())}
@@ -179,15 +278,15 @@ pub fn Game() -> Html {
                     <span class="toggle-icon">
                         {if *show_instructions { "▼" } else { "▶" }}
                     </span>
-                    {"Game Instructions"}
+                    {t("game.instructions_toggle")}
                 </button>
                 
                 if *show_instructions {
                     <div class="instructions">
                         <ul>
-                            <li>{"Only the questions that can be answered with YES or NO are allowed."}</li>
-                            <li>{"If a question cannot be answered with a simple yes/no, the response will be UNABLE."}</li>
-                            <li>{ "Type: \""} <b> {"I'M LOSER"} </b> {"\", I'll reveal my identity and explain my answers." } </li>
+                            <li>{t("game.rule1")}</li>
+                            <li>{t("game.rule2")}</li>
+                            <li>{t("game.rule3")}</li>
                         </ul>
                     </div>
                 }

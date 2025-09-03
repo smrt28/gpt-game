@@ -393,3 +393,155 @@ h1 {
   justify-content: center;
   margin-top: 1rem;
 }
+
+/* Language selector - positioned in top right corner */
+.language-selector {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  gap: 8px;
+  z-index: 1000;
+}
+
+.flag-button {
+  appearance: none;
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+  filter: brightness(0.8) contrast(1.1);
+}
+
+.flag-button:hover {
+  background: color-mix(in oklab, var(--surface) 90%, white 10%);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  transform: scale(1.05);
+}
+
+.flag-button.active {
+  background: color-mix(in oklab, var(--surface) 85%, var(--accent) 15%);
+  border-color: rgba(130, 170, 255, 0.3);
+  box-shadow: 0 0 0 2px rgba(130, 170, 255, 0.15), 0 3px 10px rgba(0, 0, 0, 0.4);
+}
+
+.flag-button:active {
+  transform: scale(0.95);
+}
+
+/* Mobile adjustments */
+@media (max-width: 560px) {
+  .language-selector {
+    top: 10px;
+    right: 10px;
+  }
+  
+  .flag-button {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+}
+
+/* Confirmation dialog */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  backdrop-filter: blur(4px);
+}
+
+.dialog-box {
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  text-align: center;
+}
+
+.dialog-message {
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.5;
+  margin: 0 0 20px 0;
+}
+
+.dialog-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.dialog-button {
+  appearance: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid;
+  min-width: 80px;
+}
+
+.dialog-button--yes {
+  background: color-mix(in oklab, var(--accent) 20%, transparent);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.dialog-button--yes:hover {
+  background: color-mix(in oklab, var(--accent) 30%, transparent);
+  box-shadow: 0 2px 8px rgba(130, 170, 255, 0.3);
+}
+
+.dialog-button--no {
+  background: color-mix(in oklab, var(--muted) 15%, transparent);
+  border-color: var(--muted);
+  color: var(--muted);
+}
+
+.dialog-button--no:hover {
+  background: color-mix(in oklab, var(--muted) 25%, transparent);
+  box-shadow: 0 2px 8px rgba(138, 145, 162, 0.2);
+}
+
+.dialog-button:active {
+  transform: scale(0.95);
+}
+
+/* Mobile dialog adjustments */
+@media (max-width: 560px) {
+  .dialog-box {
+    padding: 20px;
+    width: 95%;
+  }
+  
+  .dialog-buttons {
+    flex-direction: column;
+  }
+  
+  .dialog-button {
+    width: 100%;
+  }
+}

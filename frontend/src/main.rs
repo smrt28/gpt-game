@@ -7,6 +7,7 @@ mod server_query;
 mod game_component;
 mod board_component;
 mod to_html;
+mod locale;
 
 use std::future::pending;
 use std::time::Duration;
