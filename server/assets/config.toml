@@ -1,5 +1,5 @@
 debug=true
-
+logfile="/tmp/gggame.log"
 [www]
 port = 3000
 # path to server/www directory

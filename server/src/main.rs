@@ -12,7 +12,7 @@ use crate::server::run_server;
 use crate::config::{Config, Gpt};
 use crate::client_pool::*;
 use crate::gpt::GptClient;
-use tracing_subscriber::EnvFilter;
+use tracing_subscriber::{EnvFilter, fmt::writer::MakeWriterExt};
 use std::{env, fs};
 use axum::extract::connect_info;
 
@@ -69,13 +69,39 @@ fn read_config() -> Result<config::Config, anyhow::Error> {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "info".into())
-        )
-        .init();
     let config = read_config()?;
+    
+    // Initialize logging based on config
+    let env_filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| "info".into());
+    
+    match &config.logfile {
+        Some(logfile) => {
+            // Log to file - disable colors
+            let file = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(logfile)?;
+            
+            tracing_subscriber::fmt()
+                .with_env_filter(env_filter)
+                .with_writer(file)
+                .with_ansi(false)  // Disable colors for file output
+                .init();
+                
+            info!("logging to file: {}", logfile);
+        }
+        None => {
+            // Log to stdout (default) - keep colors
+            tracing_subscriber::fmt()
+                .with_env_filter(env_filter)
+                .with_ansi(true)   // Enable colors for stdout
+                .init();
+                
+            info!("logging to stdout");
+        }
+    }
+    
     run_server(&config, Arc::new(GptClientFactory::new(&config))).await?;
     Ok(())
 }

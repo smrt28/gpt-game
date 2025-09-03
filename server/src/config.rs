@@ -9,6 +9,7 @@ pub struct Config {
     pub debug: bool,
     pub www: Www,
     pub gpt: Gpt,
+    pub logfile: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
