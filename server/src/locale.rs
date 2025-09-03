@@ -167,6 +167,7 @@ impl LocaleManager {
     pub fn get_random_identity(&self, lang: &Language) -> Option<String> {
         let identities = self.identities.get(lang)?;
         if identities.list.is_empty() {
+            log::warn!("No identities found for language {:?}", lang);
             None
         } else {
             use rand::seq::SliceRandom;
@@ -187,6 +188,7 @@ pub fn init_locale(config: &Config) {
 pub fn get_locale_manager() -> &'static LocaleManager {
     LOCALE_MANAGER.get().expect("Locale manager not initialized. Call init_locale() first.")
 }
+
 
 // Convenience functions
 pub fn t(lang: &Language, key: &str) -> String {

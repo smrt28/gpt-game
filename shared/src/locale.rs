@@ -17,7 +17,12 @@ impl Language {
         }
     }
     
-    
+    pub fn to_instruction(&self) -> &'static str {
+        match self {
+            Language::English => "English",
+            Language::Czech => "Czech",
+        }
+    }
     
     pub fn to_code(&self) -> &'static str {
         match self {

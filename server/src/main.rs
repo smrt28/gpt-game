@@ -23,7 +23,6 @@ mod app_error;
 mod client_pool;
 mod token_gen;
 mod game_prompt;
-mod built_in_options;
 mod config;
 mod locale;
 

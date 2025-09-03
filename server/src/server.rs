@@ -259,7 +259,7 @@ fn normalize_cheat(s: &str) -> String {
 
 fn is_cheat(s: &str) -> bool {
     let n = normalize_cheat(s);
-    matches!(n.as_str(), "IM LOSER" | "I AM LOSER" | "IM A LOSER")
+    matches!(n.as_str(), "IM LOSER" | "I AM LOSER" | "IM A LOSER" | "KONEC" | "konec")
 }
 
 async fn ask(
@@ -287,8 +287,9 @@ async fn ask(
     let mut question_builder = GameStepBuilder::new(&state.config);
 
     question_builder
-        .set_target(state.game_manager.get_target(&token)?.as_str())
-        .set_question(question.as_str())
+        .set_target(&state.game_manager.get_target(&token)?)
+        .set_language(&state.game_manager.get_language(&token)?)
+        .set_question(&question)
         .check()?
     ;
 
@@ -342,17 +343,9 @@ async fn new_game(State(state): State<Shared>,
                   ConnectInfo(addr): ConnectInfo<SocketAddr>,
                   Query(game_params): Query<NewGameParam>,
 
-) -> String {
-
-    let identity = crate::locale::get_random_identity(&game_params.get_language())
-        .unwrap_or_else(|| {
-            log::warn!("No identities available for language {:?}, falling back to built-in", game_params.get_language());
-            crate::built_in_options::random_identity().to_string()
-        });
-    
-    let game_token = state.game_manager.new_game(&identity, game_params.get_language())
-        .to_string();
-
+) -> Result<String, AppError> {
+    let identity = crate::locale::get_random_identity(&game_params.get_language()).ok_or(AppError::InternalServerError)?;
+    let game_token = state.game_manager.new_game(&identity, game_params.get_language()).to_string();
     info!("new-game-created-for {}: {}", addr, game_token);
-    game_token
+    Ok(game_token)
 }

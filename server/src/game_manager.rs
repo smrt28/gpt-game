@@ -95,6 +95,11 @@ impl GameManager {
         }
         Err(AppError::InternalServerError)
     }
+    
+    pub fn get_language(&self, token: &Token) -> Result<Language, AppError> {
+        let g = self.get_game(token)?;
+        Ok(g.lang.clone())
+    }
 
     pub fn set_pending_question(&self, token: &Token, question: &String) -> Result<(), AppError> {
         let mut g = self.get_game(token)?;

@@ -68,7 +68,7 @@ impl LocaleManager {
         strings.insert("ui.language".to_string(), "Language".to_string());
         
         // Confirmation dialog
-        strings.insert("dialog.confirm_language_switch".to_string(), "Switching languages will terminate the current game. Do you want to continue?".to_string());
+        strings.insert("dialog.confirm_language_switch".to_string(), "Switching languages will end the current game. Do you really want to switch?".to_string());
         strings.insert("dialog.yes".to_string(), "Yes".to_string());
         strings.insert("dialog.no".to_string(), "No".to_string());
         
@@ -86,11 +86,11 @@ impl LocaleManager {
         strings.insert("ui.server_error".to_string(), "Chyba serveru".to_string());
         
         // Game component
-        strings.insert("game.prompt".to_string(), "Mám skrytou identitu. Zkuste uhodnout, kdo jsem. Položte svou otázku...".to_string());
+        strings.insert("game.prompt".to_string(), "Ptej se!".to_string());
         strings.insert("game.instructions_toggle".to_string(), "Pravidla hry".to_string());
         strings.insert("game.rule1".to_string(), "Jsou povoleny pouze otázky, na které lze odpovědět ANO nebo NE.".to_string());
-        strings.insert("game.rule2".to_string(), "Pokud na otázku nelze odpovědět jednoduchým ano/ne, odpověď bude NEMOHU.".to_string());
-        strings.insert("game.rule3".to_string(), "Napište: \"JSEM PORAŽENÝ\" a odhalím svou identitu a vysvětlím své odpovědi.".to_string());
+        strings.insert("game.rule2".to_string(), "Pokud na otázku nelze odpovědět jednoduchým ano/ne, odpověď bude NELZE.".to_string());
+        strings.insert("game.rule3".to_string(), "Napište: \"konec\" a já odhalím svou identitu a vysvětlím své odpovědi.".to_string());
         
         // UI elements
         strings.insert("ui.send".to_string(), "Odeslat".to_string());
@@ -99,15 +99,15 @@ impl LocaleManager {
         // Verdict labels
         strings.insert("verdict.yes".to_string(), "Ano".to_string());
         strings.insert("verdict.no".to_string(), "Ne".to_string());
-        strings.insert("verdict.unable".to_string(), "Nemohu".to_string());
-        strings.insert("verdict.final".to_string(), "Finální".to_string());
+        strings.insert("verdict.unable".to_string(), "Nelze".to_string());
+        strings.insert("verdict.final".to_string(), "Konec".to_string());
         strings.insert("verdict.na".to_string(), "N/A".to_string());
         
         // Language selector
         strings.insert("ui.language".to_string(), "Jazyk".to_string());
         
         // Confirmation dialog
-        strings.insert("dialog.confirm_language_switch".to_string(), "Změna jazyka ukončí aktuální hru. Chcete pokračovat?".to_string());
+        strings.insert("dialog.confirm_language_switch".to_string(), "Změna jazyka ukončí aktuální hru. Opravdu mám hru ukončit?".to_string());
         strings.insert("dialog.yes".to_string(), "Ano".to_string());
         strings.insert("dialog.no".to_string(), "Ne".to_string());
         

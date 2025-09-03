@@ -1,6 +1,6 @@
 use yew::{html, Html};
 use shared::messages::{Answer, GameState, Question, Record, Verdict};
-
+use crate::locale::t;
 #[derive(Clone, PartialEq)]
 pub struct  ToHtmlExArgs<'a> {
     pub state: &'a GameState,
@@ -24,12 +24,12 @@ impl ToHtmlEx for Question {
 impl ToHtmlEx for Verdict {
     fn to_html(&self, args: &ToHtmlExArgs) -> Html {
         let (label, class) = match self {
-            Verdict::Yes    => ("Yes",    "badge badge--yes"),
-            Verdict::No     => ("No",     "badge badge--no"),
-            Verdict::Unable => ("Unable", "badge badge--unable"),
-            Verdict::Final =>  ("Final",  "badge badge--final"),
-            Verdict::NotSet => ("N/A",    "badge badge--na"),
-            Verdict::Pending => ("N/A",   "badge badge--na"),
+            Verdict::Yes    => (t("verdict.yes"),    "badge badge--yes"),
+            Verdict::No     => (t("verdict.no"),     "badge badge--no"),
+            Verdict::Unable => (t("verdict.unable"), "badge badge--unable"),
+            Verdict::Final =>  (t("verdict.final"),  "badge badge--final"),
+            Verdict::NotSet => (t("verdict.na"),    "badge badge--na"),
+            Verdict::Pending => (t("verdict.na"),   "badge badge--na"),
         };
 
         html! {
