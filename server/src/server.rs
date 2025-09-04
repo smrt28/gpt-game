@@ -8,7 +8,7 @@ use anyhow::{Context, Result};
 use axum::{
     body::Bytes,
     extract::{ConnectInfo, Path, Query, Request, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     middleware::{self, Next},
     response::{IntoResponse, Redirect, Response},
     routing::{get, post},
@@ -116,8 +116,36 @@ async fn log_requests(
     req: Request,
     next: Next,
 ) -> Response {
-    info!("{} {} {}", req.method(), req.uri().path_and_query().map(|x| x.as_str()).unwrap_or(""), addr.ip());
+    let real_ip = get_real_ip(req.headers(), addr.ip());
+    info!("{} {} {}", req.method(), req.uri().path_and_query().map(|x| x.as_str()).unwrap_or(""), real_ip);
     next.run(req).await
+}
+
+fn get_real_ip(headers: &HeaderMap, fallback_ip: std::net::IpAddr) -> std::net::IpAddr {
+    // Try X-Forwarded-For header first
+    if let Some(xff) = headers.get("x-forwarded-for") {
+        if let Ok(xff_str) = xff.to_str() {
+            // X-Forwarded-For can be "client, proxy1, proxy2"
+            // We want the first (leftmost) IP which is the original client
+            if let Some(first_ip) = xff_str.split(',').next() {
+                if let Ok(ip) = first_ip.trim().parse() {
+                    return ip;
+                }
+            }
+        }
+    }
+    
+    // Try X-Real-IP header
+    if let Some(real_ip) = headers.get("x-real-ip") {
+        if let Ok(ip_str) = real_ip.to_str() {
+            if let Ok(ip) = ip_str.parse() {
+                return ip;
+            }
+        }
+    }
+    
+    // Fallback to the direct connection IP
+    fallback_ip
 }
 
 fn logging() -> TraceLayer<SharedClassifier<ServerErrorsAsFailures>> {
@@ -212,28 +240,30 @@ async fn handler_404() -> impl IntoResponse {
 }
 
 
-async fn game(State(state): State<Shared>,
-                      ConnectInfo(addr): ConnectInfo<SocketAddr>,
-                      Path(token_str): Path<String>,
-                      Query(query): Query<WaitParam>
-
+async fn game(
+    headers: HeaderMap,
+    State(state): State<Shared>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    Path(token_str): Path<String>,
+    Query(query): Query<WaitParam>
 ) -> Result<String, AppError> {
-    info!("game request from {}", addr);
+    let real_ip = get_real_ip(&headers, addr.ip());
+    info!("game request from {}", real_ip);
     query.check()?;
     let token = Token::from_string(token_str.as_str()).map_err(|e| {
-        warn!("invalid token from {}: {} - {}", addr, token_str, e);
+        warn!("invalid token from {}: {} - {}", real_ip, token_str, e);
         e
     })?;
     let pending = state.game_manager.is_pending(&token)?;
 
     if pending && query.wait == 1 {
-        info!("client {} waiting for answer", addr);
+        info!("client {} waiting for answer", real_ip);
         let res = state.game_manager.wait_for_answer(&token, Duration::new(5, 0)).await;
         if res.is_err() {
-            info!("answer not ready for {}, reason={}", addr, res.as_ref().unwrap_err());
+            info!("answer not ready for {}, reason={}", real_ip, res.as_ref().unwrap_err());
             res?;
         }
-        info!("answer ready for {}", addr);
+        info!("answer ready for {}", real_ip);
     }
 
     let status = if pending {Status::Pending} else {Status::Ok};
@@ -264,22 +294,24 @@ fn is_cheat(s: &str) -> bool {
 }
 
 async fn ask(
+    headers: HeaderMap,
     State(state): State<Shared>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Path(token_str): Path<String>,
     body: Bytes,
 ) -> Result<String, AppError> {
+    let real_ip = get_real_ip(&headers, addr.ip());
     let token = Token::from_string(token_str.as_str()).map_err(|e| {
-        warn!("invalid token from {}: {} - {}", addr, token_str, e);
+        warn!("invalid token from {}: {} - {}", real_ip, token_str, e);
         e
     })?;
 
     let Some(question) = sanitize_question(&String::from_utf8_lossy(&body).to_string()) else {
-        info!("invalid question from {}", addr);
+        info!("invalid question from {}", real_ip);
         return Err(AppError::InvalidToken);
     };
 
-    info!("question from {}: \"{}\"", addr, question);
+    info!("question from {}: \"{}\"", real_ip, question);
 
     let mut gpt_client = state.client_factory.pop();
     gpt_client.update().await.unwrap();
@@ -298,20 +330,20 @@ async fn ask(
     tokio::spawn(async move {
 
         if is_cheat(&question) {
-            info!("cheat detected from {}: \"{}\"", addr, question);
+            info!("cheat detected from {}: \"{}\"", real_ip, question);
             let answer = shared::messages::Answer::get_lose(&question_builder.get_target());
             let _ = state.game_manager.answer_pending_question(&token, &answer);
             let _ = state.game_manager.finish_game(&token);
             return
         }
 
-        info!("sending question to GPT for {}: \"{}\"", addr, question);
+        info!("sending question to GPT for {}: \"{}\"", real_ip, question);
         let result = gpt_client.client().ask(&question_builder.build_question(),
                                              &question_builder.build_params(&state.config)).await;
 
         match result {
             Ok(gpt_answer) => {
-                info!("GPT response received OK for {}", addr);
+                info!("GPT response received OK for {}", real_ip);
 
                 let s = gpt_answer.to_string().unwrap_or("UNABLE; this is weird".to_string());
 
@@ -319,7 +351,7 @@ async fn ask(
                 let _ = state.game_manager.answer_pending_question(&token, &answer);
             }
             Err(err) => {
-                info!("GPT response ERROR for {}: {}", addr, err);
+                info!("GPT response ERROR for {}: {}", real_ip, err);
                 let _ = state.game_manager.handle_error_response(&token,
                        GameError::GPTError(err.to_string()));
             }
@@ -330,21 +362,27 @@ async fn ask(
     Ok(status_response(Status::Ok))
 }
 
-async fn index(State(_state): State<Shared>,
-             ConnectInfo(addr): ConnectInfo<SocketAddr>) -> String {
+async fn index(
+    headers: HeaderMap,
+    State(_state): State<Shared>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>
+) -> String {
+    let real_ip = get_real_ip(&headers, addr.ip());
     let token = Token::new(TokenType::Answer).to_string();
-    info!("token request from {}: {}", addr, token);
+    info!("token request from {}: {}", real_ip, token);
     token
 }
 
 
-async fn new_game(State(state): State<Shared>,
-                  ConnectInfo(addr): ConnectInfo<SocketAddr>,
-                  Query(game_params): Query<NewGameParam>,
-
+async fn new_game(
+    headers: HeaderMap,
+    State(state): State<Shared>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    Query(game_params): Query<NewGameParam>
 ) -> Result<String, AppError> {
+    let real_ip = get_real_ip(&headers, addr.ip());
     let identity = crate::locale::get_random_identity(&game_params.get_language()).ok_or(AppError::InternalServerError)?;
     let game_token = state.game_manager.new_game(&identity, game_params.get_language()).to_string();
-    info!("new-game-created-for {}: {}", addr, game_token);
+    info!("new-game-created-for {}: {}", real_ip, game_token);
     Ok(game_token)
 }
