@@ -45,6 +45,10 @@ html, body {
     margin: 12px auto;
     padding: 0 12px;
   }
+  
+  .game {
+    gap: 10px; /* Reduce gap between game records */
+  }
 }
 .game {
   display: grid;
@@ -247,7 +251,7 @@ html, body {
       "label"
       "text"
       "button";
-        margin: 20px auto;
+        margin: 4px auto;
         padding: 16px;
     }
     .ask-prompt > button {
@@ -333,11 +337,7 @@ html {
 
 /* Additional mobile browser fixes */
 @media (max-width: 560px) {
-  /* Fix for mobile safari viewport height issues */
-  .board {
-    min-height: 100vh;
-    min-height: 100dvh; /* Use dynamic viewport height if supported */
-  }
+  /* Remove forced full height on mobile for better UX */
 
   /* Better text contrast on mobile */
   .comment {
@@ -419,6 +419,20 @@ h1 {
     font-size: 2rem;
     margin: 0.5rem 0;
     letter-spacing: 0.02em;
+  }
+  
+  /* Reduce spacing between title and content */
+  .instructions {
+    margin: 0 auto 1rem auto;
+    padding: 0.8rem 1.2rem;
+  }
+  
+  .instructions-container {
+    margin: 0.5rem auto 1rem auto;
+  }
+  
+  .note {
+    margin: 0.5rem auto 1rem;
   }
 }
 
