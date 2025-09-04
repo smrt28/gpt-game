@@ -1,7 +1,5 @@
-use std::time::Duration;
 use gloo::net::http::Request;
 use log::info;
-use serde_json::{Result, Value};
 use crate::locale::get_current_language;
 
 pub async fn fetch_text(path: &str) -> anyhow::Result<String> {
@@ -14,24 +12,6 @@ pub async fn fetch_text(path: &str) -> anyhow::Result<String> {
     Ok(text)
 }
 
-pub async fn fetch_pending(token: &str, wait: bool) -> anyhow::Result<bool> {
-    let path = if wait {
-        format!("/api/game/{token}?wait=1")
-    } else {
-        format!("/api/game/{token}")
-    };
-
-    let text = fetch_text(path.as_str()).await?;
-    info!("FETCH PENDING: {}: {}", token, text);
-    let v: Value = serde_json::from_str(text.as_str())?;
-    if let Some(res) = v["pending"].as_bool() {
-        info!("{}: pending: {}", token, res);
-        Ok(res)
-    } else {
-        info!("{}: pending: invalid response: {:?}", token, v);
-        Err(anyhow::anyhow!("pending: invalid response: {:?}", v))
-    }
-}
 
 pub async fn send_question(token: &str, text: &str) -> anyhow::Result<String> {
     info!("asking : {}: {}", token, text);

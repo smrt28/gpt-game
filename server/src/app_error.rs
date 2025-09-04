@@ -1,7 +1,4 @@
-#![allow(dead_code)]
-
 use axum::{response::{IntoResponse, Response}, http::StatusCode, Json};
-use serde::Serialize;
 use shared::messages::Status;
 
 #[derive(Debug, thiserror::Error)]

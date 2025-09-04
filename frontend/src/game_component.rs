@@ -8,7 +8,7 @@ use yew_router::hooks::use_navigator;
 use crate::server_query::{fetch_new_game_token, fetch_text, send_question};
 use crate::ask_prompt_component::AskPrompt;
 use crate::board_component::{Act, Board, BoardState};
-use crate::locale::{t, tf, get_current_language, set_language};
+use crate::locale::{t, get_current_language, set_language};
 use shared::locale::Language;
 use wasm_bindgen_futures::spawn_local;
 use shared::messages::{GameState, ServerResponse, Status};
@@ -55,7 +55,7 @@ pub fn Game() -> Html {
     use_effect_with(*version, {
         let token = token.clone();
         let board = board.clone();
-        let navigator = navigator.clone();
+        let _navigator = navigator.clone();
         let pending = pending.clone();
         let active_game = active_game.clone();
 

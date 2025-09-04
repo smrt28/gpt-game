@@ -1,10 +1,7 @@
-use std::fmt::format;
-use tower::util::Either;
 use crate::app_error::AppError;
-use crate::gpt::QuestionParams;
 use crate::config::Config;
+use crate::gpt::QuestionParams;
 use shared::locale::Language;
-use crate::locale;
 
 
 #[derive(Debug, Clone)]

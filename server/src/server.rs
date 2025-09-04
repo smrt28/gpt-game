@@ -1,53 +1,42 @@
 
-#![allow(dead_code)]
-
-use axum::{
-    extract::ConnectInfo,
-    extract::Path,
-    extract::State,
-    routing::get,
-    Router,
-};
-use anyhow::{Context, Error, Result};
 use std::net::SocketAddr;
-use std::ops::Deref;
 use std::path::PathBuf;
 use std::sync::Arc;
-use axum::response::{Html, IntoResponse, Redirect};
-use tokio::{net::TcpListener, sync::Mutex};
-use std::sync::Mutex as StdMutex;
 use std::time::Duration;
-use axum::extract::Query;
-use axum::handler::Handler;
-use axum::http::StatusCode;
-use axum::body::Bytes;
-use axum::routing::post;
-use clap::builder::Str;
-use serde::{Deserialize, Serialize};
-use serde_json::json;
-use crate::{gpt, GptClientFactory};
-use crate::client_pool::*;
-use crate::gpt::*;
-use shared::shared_error::*;
-use tokio::time::timeout;
-use tower_http::services::{ServeDir, ServeFile};
-use tower_http::trace::{DefaultMakeSpan, DefaultOnFailure, DefaultOnRequest, DefaultOnResponse, TraceLayer, MakeSpan};
-use tracing::{info, warn, error, debug, Level, Span};
-use tower_http::trace::OnRequest;
-use tracing_subscriber::fmt::layer;
-use tower_http::classify::{ServerErrorsAsFailures, SharedClassifier};
+
+use anyhow::{Context, Result};
+use axum::{
+    body::Bytes,
+    extract::{ConnectInfo, Path, Query, State},
+    http::StatusCode,
+    response::{IntoResponse, Redirect},
+    routing::{get, post},
+    Router,
+};
+use serde::Deserialize;
+use tokio::{net::TcpListener, sync::Mutex};
 use tower::ServiceBuilder;
-use shared::messages::{ status_response, GameError, GameState, ServerResponse, Status, Verdict};
-use shared::token::*;
-use crate::game_manager::*;
-use crate::app_error::*;
-use shared::token::TokenType::Answer;
-use axum::extract::rejection::QueryRejection;
-use serde::de::{self, Deserializer};
-use shared::token;
-use crate::token_gen::TokenGen;
-use crate::game_prompt::GameStepBuilder;
-use crate::Config;
+use tower_http::{
+    classify::{ServerErrorsAsFailures, SharedClassifier},
+    services::{ServeDir, ServeFile},
+    trace::{DefaultMakeSpan, DefaultOnFailure, DefaultOnRequest, DefaultOnResponse, TraceLayer},
+};
+use tracing::{info, warn, Level};
+
+use crate::{
+    app_error::*,
+    client_pool::*,
+    game_manager::*,
+    game_prompt::GameStepBuilder,
+    gpt::*,
+    token_gen::TokenGen,
+    Config,
+};
+use shared::{
+    messages::{status_response, GameError, ServerResponse, Status},
+    token::*,
+};
+use serde::de::Deserializer;
 use shared::locale::Language;
 
 fn de_opt_bool<'de, D>(deserializer: D) -> Result<i32, D::Error>
@@ -100,6 +89,7 @@ impl WaitParam {
 }
 
 struct AppState {
+    #[allow(dead_code)]
     counter: Mutex<u32>,
     client_factory: Arc<ClientsPool::<GptClient>>,
     config: Config,

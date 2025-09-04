@@ -1,9 +1,6 @@
-#![allow(dead_code)]
-
 use std::collections::HashMap;
 use log::info;
 use shared::locale::Language;
-use wasm_bindgen::prelude::*;
 
 #[derive(Debug, Clone)]
 pub struct LocaleManager {
@@ -152,6 +149,7 @@ impl LocaleManager {
             })
     }
     
+    #[allow(dead_code)]
     pub fn get_formatted(&self, key: &str, args: &[&str]) -> String {
         let template = self.get(key);
         let mut result = template;
@@ -166,6 +164,7 @@ impl LocaleManager {
         result
     }
     
+    #[allow(dead_code)]
     pub fn available_languages(&self) -> Vec<Language> {
         vec![Language::English, Language::Czech]
     }
@@ -191,6 +190,7 @@ pub fn set_language(lang: Language) {
     LOCALE_MANAGER.with(|manager| manager.borrow_mut().set_language(lang));
 }
 
+#[allow(dead_code)]
 pub fn available_languages() -> Vec<Language> {
     LOCALE_MANAGER.with(|manager| manager.borrow().available_languages())
 }
@@ -200,6 +200,7 @@ pub fn t(key: &str) -> String {
     LOCALE_MANAGER.with(|manager| manager.borrow().get(key))
 }
 
+#[allow(dead_code)]
 pub fn tf(key: &str, args: &[&str]) -> String {
     LOCALE_MANAGER.with(|manager| manager.borrow().get_formatted(key, args))
 }

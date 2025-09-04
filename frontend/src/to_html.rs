@@ -12,7 +12,7 @@ pub trait ToHtmlEx {
 }
 
 impl ToHtmlEx for Question {
-    fn to_html(&self, args: &ToHtmlExArgs) -> Html {
+    fn to_html(&self, _args: &ToHtmlExArgs) -> Html {
         html! {
             <div class="question">
                 { self.text.to_string() }
@@ -22,7 +22,7 @@ impl ToHtmlEx for Question {
 }
 
 impl ToHtmlEx for Verdict {
-    fn to_html(&self, args: &ToHtmlExArgs) -> Html {
+    fn to_html(&self, _args: &ToHtmlExArgs) -> Html {
         let (label, class) = match self {
             Verdict::Yes    => (t("verdict.yes"),    "badge badge--yes"),
             Verdict::No     => (t("verdict.no"),     "badge badge--no"),

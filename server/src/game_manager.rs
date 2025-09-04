@@ -50,6 +50,7 @@ impl GameManager {
         Ok(h.notifier.clone())
     }
 
+    #[allow(dead_code)]
     pub fn notice_answer(&self, token: &Token, _answer: &Answer) -> Result<(), AppError> {
         self.get_notifier(token)?.notify_waiters();
         Ok(())
@@ -63,6 +64,7 @@ impl GameManager {
         Ok(result)
     }
 
+    #[allow(dead_code)]
     pub fn delete_game(&self, token: &Token) -> Result<(), AppError> {
         let notifier = self.get_notifier(token)?;
         self.game_states.remove(token);
@@ -129,6 +131,7 @@ impl GameManager {
         Ok(self.get_game(token)?.pending_question.is_some())
     }
 
+    #[allow(dead_code)]
     pub fn game_to_value(&self, token: &Token) -> Result<serde_json::Value, AppError> {
         Ok(serde_json::to_value(self.get_game(token)?.deref())?)
     }
@@ -148,6 +151,7 @@ impl GameManager {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn game_ended(&self, token: &Token) -> bool {
         self.get_game(token)
             .map(|game| game.game_ended)

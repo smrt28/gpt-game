@@ -1,28 +1,23 @@
-use crate::to_html::{ToHtmlEx, ToHtmlExArgs};
 use std::ops::Deref;
-use gloo_storage::{LocalStorage, Storage};
-use log::info;
-use yew::{function_component, html, props, use_effect_with, use_state, Callback, Html, Properties};
-use crate::{Route};
-use crate::server_query::{fetch_pending, fetch_text, send_question};
-use crate::ask_prompt_component::*;
 use std::rc::Rc;
-use wasm_bindgen_futures::spawn_local;
-use web_sys::console::info_1;
-use yew::prelude::*;
-use yew_router::hooks::use_navigator;
+
+use log::info;
+use yew::{function_component, html, Callback, Html, Properties, Reducible, UseReducerHandle};
+
+use crate::locale::t;
+use crate::to_html::{ToHtmlEx, ToHtmlExArgs};
 use shared::messages::GameState;
-use crate::game_component::Game;
-use crate::locale::{t};
 #[derive(Clone, PartialEq, Default)]
 pub struct BoardState {
     game: Option<GameState>,
 }
 
+#[allow(dead_code)]
 pub enum ServerErrorDetail {
     General
 }
 
+#[allow(dead_code)]
 pub enum Act {
     ServerError(ServerErrorDetail),
     Update(GameState),
@@ -34,7 +29,7 @@ impl Reducible for BoardState {
     fn reduce(self: Rc<Self>, act: Act) -> Rc<Self> {
         info!("BoardState::reduce");
         match act {
-            Act::ServerError(d) => {
+            Act::ServerError(_d) => {
                 Rc::new((*self).clone())
             },
             Act::Update(next) => {
@@ -58,7 +53,7 @@ pub struct BoardProps {
 
 #[function_component(Board)]
 pub fn board(props: &BoardProps) -> Html {
-    let game = &props.board.deref().game;
+    let _game = &props.board.deref().game;
 
     let onclick = {
         let cb = props.on_new_game.clone();

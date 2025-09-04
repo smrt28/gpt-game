@@ -170,7 +170,6 @@ impl LocaleManager {
             log::warn!("No identities found for language {:?}", lang);
             None
         } else {
-            use rand::seq::SliceRandom;
             use rand::prelude::*;
             let mut rng = rand::rng();
             identities.list.choose(&mut rng).cloned()

@@ -4,7 +4,7 @@ use anyhow::{anyhow, Context, Result};
 use log::{error, info};
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::json;
 
 use crate::{config, string_enum};
 
@@ -19,7 +19,6 @@ string_enum! {
 
 pub struct Answer {
     response: Response,
-    json: Value,
 }
 
 #[derive(Deserialize)]
@@ -68,20 +67,14 @@ impl Response {
 
 impl Answer {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
-        let json = serde_json::from_slice(bytes).context("JSON parse failed")?;
-        let response = serde_json::from_slice(bytes)?;
-        Ok(Self { json, response })
+        let response = serde_json::from_slice(bytes).context("JSON parse failed")?;
+        Ok(Self { response })
     }
 
     pub fn to_string(&self) -> Option<String> {
         self.response.first_output_text_typed().map(ToString::to_string)
     }
 
-    pub fn dump(&self) {
-        if let Ok(s) = serde_json::to_string_pretty(&self.json) {
-            println!("{}", s);
-        }
-    }
 }
 
 pub struct GptClient {
@@ -119,23 +112,11 @@ impl Default for QuestionParams {
 }
 
 impl QuestionParams {
-    pub fn set_model(&mut self, model: Model) {
-        self.model = model;
-    }
-
     pub fn set_instructions<S: AsRef<str>>(&mut self, instructions: S) {
         let s = instructions.as_ref().trim();
         if s.len() > 1 {
             self.instructions = Some(s.to_owned());
         }
-    }
-
-    pub fn set_max_output_tokens(&mut self, max_output_tokens: i32) {
-        self.max_output_tokens = Some(max_output_tokens);
-    }
-
-    pub fn set_temperature(&mut self, temperature: f32) {
-        self.temperature = Some(temperature);
     }
 }
 
