@@ -49,9 +49,16 @@ impl GameStepBuilder {
     }
 
     pub fn sanitize_question(&self, question: &String) -> Result<String, AppError> {
+        let question = question.trim();
+
         if question.len() > 120 {
             return Err(anyhow::anyhow!("Too long questuin").into());
         }
+
+        if question.len() < 5 {
+            return Err(anyhow::anyhow!("Is it even a question?").into());
+        }
+
         let clean_question = question.replace(['[', ']'], "/");
         Ok(format!("question: [{}]", clean_question))
     }
