@@ -274,13 +274,11 @@ async fn ask(
     gpt_client.update().await.unwrap();
 
 
-    let mut question_builder = GameStepBuilder::new(&state.config);
-
-    question_builder
+    let question_builder = GameStepBuilder::new(&state.config)
         .set_target(&state.game_manager.get_target(&token)?)
         .set_language(&state.game_manager.get_language(&token)?)
         .set_question(&question)
-        .check()?
+        .create()?
     ;
 
     state.game_manager.set_pending_question(&token, &question_builder.get_original_question())?;

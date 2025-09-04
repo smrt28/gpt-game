@@ -12,6 +12,7 @@ use crate::locale::{t, get_current_language, set_language};
 use shared::locale::Language;
 use wasm_bindgen_futures::spawn_local;
 use shared::messages::{GameState, ServerResponse, Status};
+use shared::gpt::check_question;
 
 
 // http://localhost:3000/run/game
@@ -39,6 +40,9 @@ pub fn Game() -> Html {
         let version = version.clone();
         let pending = pending.clone();
         Callback::from(move |text: String| {
+            if !check_question(&text).is_ok() {
+                return
+            }
             let (token, version, pending) = (token.clone(), version.clone(), pending.clone());
             spawn_local(async move {
                 pending.set(true);

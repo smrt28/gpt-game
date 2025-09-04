@@ -43,28 +43,15 @@ impl GameStepBuilder {
         self.target.clone().unwrap()
     }
 
-    pub fn set_target(&mut self, target: &str) -> &mut Self {
+    pub fn set_target(mut self, target: &str) -> Self {
         self.target = Some(target.to_string());
         self
     }
 
-    pub fn sanitize_question(&self, question: &String) -> Result<String, AppError> {
-        let question = question.trim();
 
-        if question.len() > 120 {
-            return Err(anyhow::anyhow!("Too long questuin").into());
-        }
 
-        if question.len() < 5 {
-            return Err(anyhow::anyhow!("Is it even a question?").into());
-        }
-
-        let clean_question = question.replace(['[', ']'], "/");
-        Ok(format!("question: [{}]", clean_question))
-    }
-
-    pub fn set_question(&mut self, question: &str) -> &mut Self {
-        if let Ok(q) = self.sanitize_question(&question.to_string()) {
+    pub fn set_question(mut self, question: &str) -> Self {
+        if let Ok(q) = shared::gpt::sanitize_question(&question.to_string()) {
             self.question = Some(q);
             self.original_question = Some(question.to_string());
             return self;
@@ -72,16 +59,16 @@ impl GameStepBuilder {
         self
     }
 
-    pub fn set_language(&mut self, language: &Language) -> &mut Self {
+    pub fn set_language(mut self, language: &Language) -> Self {
         self.language = Some(language.clone());
         self
     }
 
-    pub fn check(&self) -> Result<(), AppError> {
+    pub fn create(self) -> Result<Self, AppError> {
         if self.target.is_none() || self.question.is_none() || self.language.is_none() {
             return Err(AppError::InvalidInput);
         }
-        Ok(())
+        Ok(self)
     }
 
     pub fn get_original_question(&self) -> String {
