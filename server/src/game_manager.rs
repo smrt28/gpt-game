@@ -109,15 +109,19 @@ impl GameManager {
         let Some(pending_question) = game.pending_question.take() else {
             return Ok(());
         };
-        
+
         if answer.verdict == Some(Verdict::Final) {
             game.game_ended = true;
         }
-        
+
         let mut record = Record::new(pending_question.text);
         record.set_answer(answer);
         game.add_record(record);
 
+        // Don't lock the game and the notificator map simultaneously to prevent potential deadlocks.
+        drop(game);
+
+        // This is important to notify the client that the answer is ready.
         if let Ok(notifier) = self.get_notifier(token) {
             notifier.notify_one();
         }
