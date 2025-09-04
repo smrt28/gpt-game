@@ -11,6 +11,7 @@ use crate::locale::Language;
 pub enum Verdict {
     Yes,
     No,
+    Behave,
     Unable,
     Final,
     NotSet,
@@ -182,6 +183,7 @@ impl Answer {
                 "NO" => Verdict::No,
                 "UNABLE" => Verdict::Unable,
                 "FINAL" => Verdict::Final,
+                "BEHAVE" => Verdict::Behave,
                 _ => Verdict::NotSet,
             };
             Self {

@@ -8,10 +8,11 @@
   --muted: #8a91a2;
 
   --yes: #18c37d;
-  --no:  #ff4d4f;
+  --no: #d8797a;
   --unable: #a78bfa;
   --na: #697386;
   --final: #ffffff;
+  --behave: #ff0000;
 
   --radius: 16px;
   --gap: 14px;
@@ -107,6 +108,7 @@ html, body {
 /* color variants */
 .badge--yes    { color: var(--yes);    background: color-mix(in oklab, var(--yes) 18%, transparent); }
 .badge--no     { color: var(--no);     background: color-mix(in oklab, var(--no) 18%, transparent); }
+.badge--behave { color: var(--behave); background: color-mix(in oklab, var(--behave) 18%, transparent); }
 .badge--unable { color: var(--unable); background: color-mix(in oklab, var(--unable) 18%, transparent); }
 .badge--na     { color: var(--na);     background: color-mix(in oklab, var(--na) 18%, transparent); }
 .badge--final  { color: var(--final);  background: color-mix(in oklab, var(--final) 18%, transparent); }

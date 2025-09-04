@@ -60,7 +60,8 @@ impl LocaleManager {
         strings.insert("verdict.unable".to_string(), "Unable".to_string());
         strings.insert("verdict.final".to_string(), "Final".to_string());
         strings.insert("verdict.na".to_string(), "N/A".to_string());
-        
+        strings.insert("verdict.behave".to_string(), "Behave".to_string());
+
         // Language selector
         strings.insert("ui.language".to_string(), "Language".to_string());
         
@@ -98,6 +99,7 @@ impl LocaleManager {
         strings.insert("verdict.no".to_string(), "Ne".to_string());
         strings.insert("verdict.unable".to_string(), "Nelze".to_string());
         strings.insert("verdict.final".to_string(), "Konec".to_string());
+        strings.insert("verdict.behave".to_string(), "Nezlob!".to_string());
         strings.insert("verdict.na".to_string(), "N/A".to_string());
         
         // Language selector

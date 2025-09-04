@@ -30,6 +30,7 @@ impl ToHtmlEx for Verdict {
             Verdict::Final =>  (t("verdict.final"),  "badge badge--final"),
             Verdict::NotSet => (t("verdict.na"),    "badge badge--na"),
             Verdict::Pending => (t("verdict.na"),   "badge badge--na"),
+            Verdict::Behave => (t("verdict.behave"),   "badge badge--behave"),
         };
 
         html! {

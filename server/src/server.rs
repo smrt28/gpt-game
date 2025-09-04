@@ -306,7 +306,7 @@ async fn ask(
         warn!("invalid token from {}: {} - {}", real_ip, token_str, e);
         e
     })?;
-    
+
     if !state.game_manager.is_game_active(&token)? {
         warn!("asking in inactive game {} {}", token.to_string(), real_ip);
         return Err(AppError::InactiveGame);
@@ -354,10 +354,8 @@ async fn ask(
 
         match result {
             Ok(gpt_answer) => {
-                info!("GPT response received OK for {}", real_ip);
-
-
                 let s = gpt_answer.to_string().unwrap_or("UNABLE; this is weird".to_string());
+                info!("GPT response received {} [{}]", real_ip, &s);
 
                 let answer = shared::messages::Answer::parse_from_string(&s);
                 let _ = state.game_manager.answer_pending_question(&token, &answer);
