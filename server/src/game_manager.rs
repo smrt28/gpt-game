@@ -150,6 +150,11 @@ impl GameManager {
         self.get_game(token)?.game_ended = true;
         Ok(())
     }
+    
+    pub fn is_game_active(&self, token: &Token) -> Result<bool, AppError> {
+        let game = self.get_game(token)?;
+        Ok(!game.game_ended)
+    }
 
     #[allow(dead_code)]
     pub fn game_ended(&self, token: &Token) -> bool {

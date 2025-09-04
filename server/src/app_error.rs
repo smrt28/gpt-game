@@ -5,6 +5,9 @@ use shared::messages::Status;
 pub enum AppError {
     #[error("invalid token")]
     InvalidToken,
+    
+    #[error("inactive game")]
+    InactiveGame,
 
     #[error("pending")]
     Pending,

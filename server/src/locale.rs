@@ -87,7 +87,7 @@ impl LocaleManager {
         strings.insert("cheat.im_loser".to_string(), "IM LOSER".to_string());
         strings.insert("cheat.i_am_loser".to_string(), "I AM LOSER".to_string());
         strings.insert("cheat.im_a_loser".to_string(), "IM A LOSER".to_string());
-        
+                
         self.translations.insert(Language::English, strings);
     }
     

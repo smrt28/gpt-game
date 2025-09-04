@@ -77,4 +77,9 @@ impl GameStepBuilder {
     pub fn build_question(&self) -> String {
         self.question.clone().unwrap()
     }
+
+    #[allow(dead_code)]
+    pub fn get_language(&self) -> Language {
+        self.language.clone().unwrap()
+    }
 }

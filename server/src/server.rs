@@ -39,6 +39,7 @@ use shared::{
 };
 use serde::de::Deserializer;
 use shared::locale::Language;
+use crate::locale::t;
 
 fn de_opt_bool<'de, D>(deserializer: D) -> Result<i32, D::Error>
 where
@@ -288,7 +289,7 @@ fn normalize_cheat(s: &str) -> String {
         .join(" ")
 }
 
-fn is_cheat(s: &str) -> bool {
+fn is_give_up(s: &str) -> bool {
     let n = normalize_cheat(s);
     matches!(n.as_str(), "IM LOSER" | "I AM LOSER" | "IM A LOSER" | "KONEC" | "konec")
 }
@@ -305,6 +306,11 @@ async fn ask(
         warn!("invalid token from {}: {} - {}", real_ip, token_str, e);
         e
     })?;
+    
+    if !state.game_manager.is_game_active(&token)? {
+        warn!("asking in inactive game {} {}", token.to_string(), real_ip);
+        return Err(AppError::InactiveGame);
+    }
 
     let Some(question) = sanitize_question(&String::from_utf8_lossy(&body).to_string()) else {
         info!("invalid question from {}", real_ip);
@@ -317,9 +323,11 @@ async fn ask(
     gpt_client.update().await.unwrap();
 
 
+    let language = state.game_manager.get_language(&token)?;
+
     let question_builder = GameStepBuilder::new(&state.config)
         .set_target(&state.game_manager.get_target(&token)?)
-        .set_language(&state.game_manager.get_language(&token)?)
+        .set_language(&language)
         .set_question(&question)
         .create()?
     ;
@@ -329,9 +337,12 @@ async fn ask(
     // !!! ASK !!!
     tokio::spawn(async move {
 
-        if is_cheat(&question) {
-            info!("cheat detected from {}: \"{}\"", real_ip, question);
-            let answer = shared::messages::Answer::get_lose(&question_builder.get_target());
+        if is_give_up(&question) {
+            info!("giving up {}: \"{}\"", real_ip, question);
+
+            let template = t(&language, "game.final_answer");
+            let final_message = template.replace("{}", &question_builder.get_target());
+            let answer = shared::messages::Answer::get_final_answer(&final_message);
             let _ = state.game_manager.answer_pending_question(&token, &answer);
             let _ = state.game_manager.finish_game(&token);
             return
@@ -344,6 +355,7 @@ async fn ask(
         match result {
             Ok(gpt_answer) => {
                 info!("GPT response received OK for {}", real_ip);
+
 
                 let s = gpt_answer.to_string().unwrap_or("UNABLE; this is weird".to_string());
 

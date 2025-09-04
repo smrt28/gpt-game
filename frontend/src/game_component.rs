@@ -94,10 +94,12 @@ pub fn Game() -> Html {
                                 Ok(server_response) => {
                                     match server_response.status {
                                         Status::Ok => {
+                                            let mut active = true;
                                             if let Some(content) = server_response.content {
+                                                active = !content.game_ended;
                                                 board.dispatch(Act::Update(content));
                                             }
-                                            active_game.set(true);
+                                            active_game.set(active);
                                             break;
                                         }
                                         Status::Error => {

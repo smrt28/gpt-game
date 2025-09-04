@@ -3,6 +3,7 @@ use serde_json::json;
 use serde_with::skip_serializing_none;
 use time::OffsetDateTime;
 
+
 use crate::locale::Language;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -166,10 +167,10 @@ impl Answer {
         }
     }
 
-    pub fn get_lose(result: &str) -> Self {
+    pub fn get_final_answer(result: &str) -> Self {
         Self {
             verdict: Some(Verdict::Final),
-            comment: Some(format!("I'm {}", result)),
+            comment: Some(format!("{}", result)),
             timestamp: OffsetDateTime::now_utc().unix_timestamp(),
         }
     }
