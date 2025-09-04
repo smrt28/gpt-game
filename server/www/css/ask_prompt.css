@@ -25,6 +25,11 @@ html, body {
   background: var(--bg);
   color: var(--text);
   font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial;
+  /* Prevent horizontal scrolling on mobile */
+  overflow-x: hidden;
+  /* Better text rendering on mobile */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* --- container layout --- */
@@ -32,6 +37,14 @@ html, body {
   max-width: 900px;
   margin: 24px auto;
   padding: 0 16px;
+}
+
+/* Mobile optimizations */
+@media (max-width: 560px) {
+  .board {
+    margin: 12px auto;
+    padding: 0 12px;
+  }
 }
 .game {
   display: grid;
@@ -107,9 +120,20 @@ html, body {
 
 /* mobile: stack tighter */
 @media (max-width: 560px) {
-  .record { padding: 12px; }
+  .record {
+    padding: 12px;
+    /* Increase tap target size */
+    margin-bottom: 8px;
+  }
   .answer { grid-template-columns: 1fr; }
-  .badge { justify-self: start; }
+  .badge {
+    justify-self: start;
+    /* Larger tap target for mobile */
+    min-height: 44px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+  }
 }
 
 
@@ -154,6 +178,10 @@ html, body {
     resize: none;
     transition: box-shadow .15s ease, border-color .15s ease, background .15s ease;
     overflow: hidden;             /* no scrollbar, extra text invisible */
+    /* Better mobile input handling */
+    -webkit-appearance: none;
+    /* Prevent zoom on iOS */
+    font-size: 16px;
 }
 
 .ask-prompt > textarea:focus {
@@ -219,10 +247,123 @@ html, body {
       "label"
       "text"
       "button";
+        margin: 20px auto;
+        padding: 16px;
     }
-    .ask-prompt > button { justify-self: end; }
+    .ask-prompt > button {
+        justify-self: stretch;
+        /* Larger tap target for mobile */
+        min-height: 48px;
+        font-size: 16px;
+        margin-top: 8px;
+    }
+    .ask-prompt > textarea {
+        min-height: 80px;
+        /* Larger text on mobile for better readability */
+        font-size: 16px;
+    }
 }
 *, *::before, *::after { box-sizing: border-box; }
+
+/* Touch-friendly improvements */
+@media (hover: none) and (pointer: coarse) {
+  /* This targets touch devices */
+  .ask-prompt > button {
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  .flag-button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .new-game {
+    min-height: 48px;
+  }
+
+  /* Remove hover effects on touch devices */
+  .record:hover {
+    box-shadow: 0 6px 18px rgba(0,0,0,.18);
+  }
+}
+
+/* Improve focus visibility for keyboard navigation */
+.ask-prompt > button:focus-visible,
+.flag-button:focus-visible,
+.new-game:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Better scrolling behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Safe area support for devices with notches */
+.board {
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+}
+
+.language-selector {
+  top: max(20px, env(safe-area-inset-top) + 10px);
+  right: max(20px, env(safe-area-inset-right) + 10px);
+}
+
+@media (max-width: 560px) {
+  .board {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+
+  .language-selector {
+    top: max(10px, env(safe-area-inset-top) + 5px);
+    right: max(10px, env(safe-area-inset-right) + 5px);
+  }
+}
+
+/* Prevent text selection on UI elements */
+.badge, .flag-button, .new-game, button {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+}
+
+/* Additional mobile browser fixes */
+@media (max-width: 560px) {
+  /* Fix for mobile safari viewport height issues */
+  .board {
+    min-height: 100vh;
+    min-height: 100dvh; /* Use dynamic viewport height if supported */
+  }
+
+  /* Better text contrast on mobile */
+  .comment {
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .question {
+    font-size: 15px;
+    line-height: 1.5;
+    padding: 12px 14px;
+  }
+
+  /* Ensure interactive elements are easily tappable */
+  .record {
+    /* Add some breathing room */
+    margin-bottom: 12px;
+  }
+
+  /* Better spacing for instructions */
+  .instructions {
+    padding: 1.2rem 1.8rem;
+    font-size: 1.1rem;
+    line-height: 1.6;
+  }
+}
 
 
 /* Pending indicator */
@@ -270,6 +411,15 @@ h1 {
 
   letter-spacing: 0.05em;      /* Slight spacing */
   text-transform: uppercase;   /* Loud */
+}
+
+/* Mobile h1 adjustments */
+@media (max-width: 560px) {
+  h1 {
+    font-size: 2rem;
+    margin: 0.5rem 0;
+    letter-spacing: 0.02em;
+  }
 }
 
 .instructions {
@@ -372,6 +522,22 @@ h1 {
   color: #ff6666;
   cursor: pointer;
   transition: background 0.2s ease, transform 0.1s ease, border-color 0.2s ease;
+  /* Better mobile tap target */
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Mobile new-game button */
+@media (max-width: 560px) {
+  .new-game {
+    width: 100%;
+    max-width: 300px;
+    padding: 0.8rem 1.5rem;
+    font-size: 1.1rem;
+    min-height: 48px;
+  }
 }
 
 .new-game:hover {
@@ -445,12 +611,14 @@ h1 {
   .language-selector {
     top: 10px;
     right: 10px;
+    /* Ensure it doesn't interfere with scrolling */
+    position: fixed;
   }
-  
+
   .flag-button {
-    width: 36px;
-    height: 36px;
-    font-size: 16px;
+    width: 44px;  /* Larger for better touch */
+    height: 44px;
+    font-size: 18px;
   }
 }
 
@@ -536,11 +704,11 @@ h1 {
     padding: 20px;
     width: 95%;
   }
-  
+
   .dialog-buttons {
     flex-direction: column;
   }
-  
+
   .dialog-button {
     width: 100%;
   }
