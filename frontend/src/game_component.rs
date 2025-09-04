@@ -8,7 +8,7 @@ use yew_router::hooks::use_navigator;
 use crate::server_query::{fetch_new_game_token, fetch_text, send_question};
 use crate::ask_prompt_component::AskPrompt;
 use crate::board_component::{Act, Board, BoardState};
-use crate::locale::{t, get_current_language, set_language};
+use crate::locale::{t, get_current_language, set_language, t_for_language};
 use shared::locale::Language;
 use wasm_bindgen_futures::spawn_local;
 use shared::messages::{GameState, ServerResponse, Status};
@@ -180,6 +180,9 @@ pub fn Game() -> Html {
         let pending_language = pending_language.clone();
         Callback::from(move |lang: Language| {
             if *active_game {
+                if get_current_language() == lang {
+                    return;
+                }
                 // Show confirmation dialog if game is active
                 pending_language.set(Some(lang));
                 show_language_dialog.set(true);
@@ -214,6 +217,7 @@ pub fn Game() -> Html {
     };
 
     let current_language = get_current_language();
+    let pl = pending_language.as_ref().unwrap_or(&current_language);
 
     html! {
         <>
@@ -242,9 +246,11 @@ pub fn Game() -> Html {
 
             // Language confirmation dialog
             if *show_language_dialog {
+
+
                 <div class="dialog-overlay">
                     <div class="dialog-box">
-                        <p class="dialog-message">{t("dialog.confirm_language_switch")}</p>
+                        <p class="dialog-message">{t_for_language(&pl, "dialog.confirm_language_switch")}</p>
                         <div class="dialog-buttons">
                             <button 
                                 class="dialog-button dialog-button--yes"

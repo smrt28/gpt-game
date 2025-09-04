@@ -88,7 +88,7 @@ impl LocaleManager {
         strings.insert("game.instructions_toggle".to_string(), "Pravidla hry".to_string());
         strings.insert("game.rule1".to_string(), "Jsou povoleny pouze otázky, na které lze odpovědět ANO nebo NE.".to_string());
         strings.insert("game.rule2".to_string(), "Pokud na otázku nelze odpovědět jednoduchým ano/ne, odpověď bude NELZE.".to_string());
-        strings.insert("game.rule3".to_string(), "Napište: \"konec\" a já odhalím svou identitu a vysvětlím své odpovědi.".to_string());
+        strings.insert("game.rule3".to_string(), "Napiš: \"KONEC\" a já odhalím svou identitu a vysvětlím své odpovědi.".to_string());
         
         // UI elements
         strings.insert("ui.send".to_string(), "Odeslat".to_string());
@@ -132,7 +132,7 @@ impl LocaleManager {
     pub fn get(&self, key: &str) -> String {
         self.get_for_language(&self.current_language, key)
     }
-    
+
     pub fn get_for_language(&self, lang: &Language, key: &str) -> String {
         self.translations
             .get(lang)
@@ -200,6 +200,10 @@ pub fn available_languages() -> Vec<Language> {
 // Convenience functions
 pub fn t(key: &str) -> String {
     LOCALE_MANAGER.with(|manager| manager.borrow().get(key))
+}
+
+pub fn t_for_language(lang: &Language, key: &str) -> String {
+    LOCALE_MANAGER.with(|manager| manager.borrow().get_for_language(lang, key))
 }
 
 #[allow(dead_code)]
