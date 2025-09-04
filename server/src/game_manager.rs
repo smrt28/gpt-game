@@ -1,28 +1,27 @@
-#![allow(dead_code)]
-
-use std::cell::RefCell;
-use std::ops::{Deref, DerefMut};
+use std::ops::Deref;
 use std::sync::Arc;
-use shared::token::*;
+use std::time::Duration;
+
 use dashmap::DashMap;
 use dashmap::mapref::one::RefMut;
-use tracing_subscriber::prelude::__tracing_subscriber_Layer;
-use shared::messages::*;
-use crate::app_error::AppError;
+use serde_json;
 use tokio::sync::Notify;
-use tokio::time::{self, Instant};
-use shared::locale::Language;
+use tokio::time;
+use tracing::info;
 
-pub fn sanitize_question(question: &String) -> Option<String> {
+use shared::locale::Language;
+use shared::messages::*;
+use shared::token::*;
+
+use crate::app_error::AppError;
+use crate::token_gen::TokenGen;
+
+pub fn sanitize_question(question: &str) -> Option<String> {
     if question.len() > 120 {
         return None;
     }
-    Some(question.clone())
+    Some(question.to_string())
 }
-use std::time::Duration;
-use serde_json::json;
-use tracing::info;
-use crate::token_gen::TokenGen;
 
 #[derive(Default)]
 struct StateHelper {
@@ -36,17 +35,14 @@ pub struct GameManager {
 
 impl GameManager {
     pub fn new() -> Self {
-        GameManager {
+        Self {
             game_states: Arc::new(DashMap::new()),
             helpers: Arc::new(DashMap::new()),
         }
     }
 
     fn get_game(&self, token: &Token) -> Result<RefMut<'_, Token, GameState>, AppError> {
-        match self.game_states.get_mut(token) {
-            Some(rv) => Ok(rv),
-            None => Err(AppError::GameNotFound),
-        }
+        self.game_states.get_mut(token).ok_or(AppError::GameNotFound)
     }
 
     fn get_notifier(&self, token: &Token) -> Result<Arc<Notify>, AppError> {
@@ -59,14 +55,12 @@ impl GameManager {
         Ok(())
     }
 
-    pub async fn wait_for_answer(&self, token: &Token, t: Duration ) -> Result<(), AppError> {
-        info!("waiting for answer BEGIN");
-        let res = match time::timeout(t, self.get_notifier(token)?.notified()).await {
-            Ok(_) => Ok(()),
-            Err(_) => Err(AppError::Timeout),
-        };
-        info!("waiting for answer END");
-        res
+    pub async fn wait_for_answer(&self, token: &Token, timeout: Duration) -> Result<(), AppError> {
+        info!("Waiting for answer BEGIN");
+        let result = time::timeout(timeout, self.get_notifier(token)?.notified()).await
+            .map_err(|_| AppError::Timeout)?;
+        info!("Waiting for answer END");
+        Ok(result)
     }
 
     pub fn delete_game(&self, token: &Token) -> Result<(), AppError> {
@@ -82,53 +76,52 @@ impl GameManager {
         let mut game = GameState::default();
         game.lang = lang.clone();
         game.target = Some(identity.to_string());
-        self.game_states.insert(token.clone(), game);
-        self.helpers.insert(token.clone(), StateHelper::default());
-        info!("new game: {}; {}; lang={}", token.to_string(), identity, &lang.to_code());
+        self.game_states.insert(token, game);
+        self.helpers.insert(token, StateHelper::default());
+        info!("New game: {:?}; {}; lang={}", token, identity, lang.to_code());
         token
     }
 
     pub fn get_target(&self, token: &Token) -> Result<String, AppError> {
-        let g = self.get_game(token)?;
-        if let Some(target) = &g.target {
-            return Ok(target.clone());
-        }
-        Err(AppError::InternalServerError)
+        let game = self.get_game(token)?;
+        game.target.clone().ok_or(AppError::InternalServerError)
     }
     
     pub fn get_language(&self, token: &Token) -> Result<Language, AppError> {
-        let g = self.get_game(token)?;
-        Ok(g.lang.clone())
+        let game = self.get_game(token)?;
+        Ok(game.lang.clone())
     }
 
-    pub fn set_pending_question(&self, token: &Token, question: &String) -> Result<(), AppError> {
-        let mut g = self.get_game(token)?;
-        if g.pending_question.is_some() {
+    pub fn set_pending_question(&self, token: &Token, question: &str) -> Result<(), AppError> {
+        let mut game = self.get_game(token)?;
+        if game.pending_question.is_some() {
             info!("Can't ask while previous question is pending.");
             return Err(AppError::Pending);
         }
-        g.pending_question = Some(Question{text: question.clone()});
+        game.pending_question = Some(Question { text: question.to_string() });
         Ok(())
     }
 
     pub fn answer_pending_question(&self, token: &Token, answer: &Answer) -> Result<(), AppError> {
-        let mut g = self.get_game(token)?;
-        if g.pending_question.is_none() {
+        let mut game = self.get_game(token)?;
+        let Some(pending_question) = game.pending_question.take() else {
             return Ok(());
-        }
+        };
+        
         if answer.verdict == Some(Verdict::Final) {
-            g.game_ended = true;
+            game.game_ended = true;
         }
-        let mut record = Record::new(g.pending_question.take().unwrap().text);
+        
+        let mut record = Record::new(pending_question.text);
         record.set_answer(answer);
-        g.add_record(record);
+        game.add_record(record);
         Ok(())
     }
 
     pub fn handle_error_response(&self, token: &Token, error: GameError) -> Result<(), AppError> {
-        let mut g = self.get_game(token)?;
-        g.error = Some(error);
-        g.pending_question = None;
+        let mut game = self.get_game(token)?;
+        game.error = Some(error);
+        game.pending_question = None;
         Ok(())
     }
 
@@ -141,13 +134,13 @@ impl GameManager {
     }
 
     pub fn get_game_state(&self, token: &Token) -> Result<GameState, AppError> {
-        let mut g = self.get_game(token)?.deref().clone();
+        let mut game = self.get_game(token)?.clone();
 
-        if !g.game_ended {
-            g.clear_comments();
+        if !game.game_ended {
+            game.clear_comments();
         }
 
-        Ok(g)
+        Ok(game)
     }
 
     pub fn finish_game(&self, token: &Token) -> Result<(), AppError> {
@@ -156,9 +149,8 @@ impl GameManager {
     }
 
     pub fn game_ended(&self, token: &Token) -> bool {
-        if let Ok(g) = self.get_game(token) {
-            return g.game_ended;
-        }
-        true
+        self.get_game(token)
+            .map(|game| game.game_ended)
+            .unwrap_or(true)
     }
 }

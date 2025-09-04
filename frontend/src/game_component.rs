@@ -3,7 +3,8 @@ use std::rc::Rc;
 use gloo_storage::{LocalStorage, Storage};
 use log::info;
 use yew::{function_component, html, use_effect_with, use_reducer, use_state, Callback, Html};
-use crate::{use_navigator_expect, Route};
+use crate::Route;
+use yew_router::hooks::use_navigator;
 use crate::server_query::{fetch_new_game_token, fetch_text, send_question};
 use crate::ask_prompt_component::AskPrompt;
 use crate::board_component::{Act, Board, BoardState};
@@ -18,7 +19,7 @@ use shared::messages::{GameState, ServerResponse, Status};
 #[function_component]
 pub fn Game() -> Html {
     info!("Game component loaded");
-    let navigator = use_navigator_expect();
+    let navigator = use_navigator().expect("Must be used within a Router");
     let version = use_state(|| 0);
     let pending = use_state(|| false);
     let active_game = use_state(|| false);

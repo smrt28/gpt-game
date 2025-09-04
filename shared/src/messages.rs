@@ -1,18 +1,10 @@
-#![allow(dead_code, unused_imports)]
-use serde::{Serialize, Deserialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::json;
 use serde_with::skip_serializing_none;
-use log::{error, info};
-use serde::de::DeserializeOwned;
 use time::OffsetDateTime;
+
 use crate::locale::Language;
 
-//use serde_with::{serde_as, TimestampMilliSeconds}; // or use Rfc3339
-/*
-trait MessageId {
-    fn get_message_id(&self) -> &str;
-}
-*/
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum Verdict {
@@ -118,7 +110,7 @@ pub struct ServerResponse<Content: Serialize> {
     pub invalid_token: Option<bool>,
 }
 
-impl <Content: DeserializeOwned + Serialize> ServerResponse::<Content> {
+impl<Content: DeserializeOwned + Serialize> ServerResponse<Content> {
     pub fn from_response(response: &str) -> Result<Self, anyhow::Error> {
         Ok(serde_json::from_str::<ServerResponse<Content>>(response)?)
     }
@@ -127,9 +119,9 @@ impl <Content: DeserializeOwned + Serialize> ServerResponse::<Content> {
         Ok(serde_json::to_string(self)?)
     }
 
-    pub fn from_content(status :Status, content: Content) -> ServerResponse::<Content> {
+    pub fn from_content(status: Status, content: Content) -> Self {
         Self {
-            status: status,
+            status,
             content: Some(content),
             invalid_token: None,
         }
@@ -149,9 +141,7 @@ impl <Content: DeserializeOwned + Serialize> ServerResponse::<Content> {
 }
 
 pub fn status_response(status: Status) -> String {
-    json!({
-            "status": status
-        }).to_string()
+    json!({ "status": status }).to_string()
 }
 
 pub fn parse_reply(s: &str) -> Option<(&str, &str)> {
@@ -176,8 +166,8 @@ impl Answer {
         }
     }
 
-    pub fn get_lose(result: &String) -> Self {
-        Answer {
+    pub fn get_lose(result: &str) -> Self {
+        Self {
             verdict: Some(Verdict::Final),
             comment: Some(format!("I'm {}", result)),
             timestamp: OffsetDateTime::now_utc().unix_timestamp(),
@@ -185,34 +175,33 @@ impl Answer {
     }
 
     pub fn parse_from_string(input: &str) -> Self {
-        let mut verdict = Verdict::NotSet;
         if let Some((token, comment)) = parse_reply(input) {
-            verdict = match token {
-                "YES"=> Verdict::Yes,
+            let verdict = match token {
+                "YES" => Verdict::Yes,
                 "NO" => Verdict::No,
                 "UNABLE" => Verdict::Unable,
                 "FINAL" => Verdict::Final,
                 _ => Verdict::NotSet,
             };
-            return Answer {
+            Self {
                 verdict: Some(verdict),
                 comment: Some(comment.to_string()),
                 timestamp: OffsetDateTime::now_utc().unix_timestamp(),
-            };
-        }
-
-        Answer {
-            verdict: Some(verdict),
-            comment: Some("Weird questin, skip...".to_string()),
-            timestamp: OffsetDateTime::now_utc().unix_timestamp(),
+            }
+        } else {
+            Self {
+                verdict: Some(Verdict::NotSet),
+                comment: Some("Weird question, skip...".to_string()),
+                timestamp: OffsetDateTime::now_utc().unix_timestamp(),
+            }
         }
     }
 }
 
 impl Record {
     pub fn new(question: String) -> Self {
-        Record {
-            questions: Question {text: question},
+        Self {
+            questions: Question { text: question },
             answers: None,
         }
     }

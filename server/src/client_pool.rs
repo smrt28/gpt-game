@@ -1,20 +1,15 @@
-#![allow(dead_code)]
+use std::sync::{Arc, Mutex as StdMutex};
 
-use std::sync::Arc;
-use std::sync::Mutex as StdMutex;
-use tokio::sync::futures::Notified;
-use crate::gpt::GptClient;
 use tokio::sync::Notify;
-use crate::app_error::AppError;
-use crate::config;
 
-pub trait PollableClientFactory<Client> : Send + Sync {
+use crate::{app_error::AppError, config};
+
+pub trait PollableClientFactory<Client>: Send + Sync {
     fn build_client(&self) -> Client;
     fn get_config(&self) -> &config::Gpt;
 }
 
-pub type Factory<Client> =
-    Arc<dyn PollableClientFactory<Client> + Send + Sync>;
+pub type Factory<Client> = Arc<dyn PollableClientFactory<Client> + Send + Sync>;
 
 struct ClientsStorage<Client> {
     clients: Vec<Arc<Client>>,
@@ -49,13 +44,10 @@ impl<Client> ClientGuard<Client> {
         self.client.as_ref().unwrap().as_ref()
     }
     pub fn has_client(&self) -> bool {
-        if self.client.is_none() {
-            return false;
-        }
-        true
+        self.client.is_some()
     }
     pub async fn update(&mut self) -> Result<(), AppError> {
-        if !self.client.is_none() {
+        if self.client.is_some() {
             return Ok(());
         }
         loop {
@@ -68,9 +60,8 @@ impl<Client> ClientGuard<Client> {
     }
 }
 
-impl<Client> Drop for ClientGuard<Client>
-{
-     fn drop(&mut self) {
+impl<Client> Drop for ClientGuard<Client> {
+    fn drop(&mut self) {
         if let Some(client) = self.client.take() {
             self.pool.return_client(client);
         }
@@ -81,33 +72,37 @@ impl<Client> ClientsPool<Client> {
     pub fn new(factory: Factory<Client>) -> Self {
         Self {
             storage: StdMutex::new(ClientsStorage::<Client>::new()),
-            factory: factory,
+            factory,
         }
     }
 
     pub fn pop(self: &Arc<Self>) -> ClientGuard<Client> {
         let config = self.factory.get_config();
         let mut storage = self.storage.lock().unwrap();
-        if storage.clients.len() == 0 {
+        if storage.clients.is_empty() {
             if storage.clients_total >= config.max_clients_count {
                 return ClientGuard {
                     client: None,
                     pool: Arc::clone(self),
                     notify: storage.notify.clone(),
-                }
+                };
             }
             storage.clients_total += 1;
-            println!("creating client {}", storage.clients_total);
-            return ClientGuard {
+            println!("Creating client {}", storage.clients_total);
+            ClientGuard {
                 client: Some(self.create_client()),
                 pool: Arc::clone(self),
                 notify: storage.notify.clone(),
-            };
+            }
         } else {
-            println!("using free client; there are {}", storage.clients.len());
+            println!("Using free client; there are {}", storage.clients.len());
+            let client = storage.clients.pop().unwrap();
+            ClientGuard { 
+                client: Some(client), 
+                pool: Arc::clone(self), 
+                notify: storage.notify.clone(),
+            }
         }
-        let client = storage.clients.pop().unwrap();
-        ClientGuard { client: Some(client), pool: Arc::clone(self), notify: storage.notify.clone(), }
     }
 
     pub fn return_client(&self, client: Arc<Client>) {
@@ -117,7 +112,7 @@ impl<Client> ClientsPool<Client> {
         }
     }
     fn raw_client(&self) -> Option<Arc<Client>> {
-        None
+        self.storage.lock().ok()?.clients.pop()
     }
 
     fn create_client(&self) -> Arc<Client> {

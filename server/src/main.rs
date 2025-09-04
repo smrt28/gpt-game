@@ -1,20 +1,17 @@
-#![allow(unused_imports)]
-
-#[macro_use]
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::{env, fs};
+use anyhow::Result;
+use tracing::info;
+use tracing_subscriber::EnvFilter;
 
 mod server;
 mod gpt;
-use std::path::PathBuf;
-use std::sync::Arc;
-use anyhow::Result;
-use tracing::info;
+
 use crate::server::run_server;
 use crate::config::{Config, Gpt};
-use crate::client_pool::*;
+use crate::client_pool::PollableClientFactory;
 use crate::gpt::GptClient;
-use tracing_subscriber::{EnvFilter, fmt::writer::MakeWriterExt};
-use std::{env, fs};
-use axum::extract::connect_info;
 
 #[macro_use]
 mod macros;
@@ -31,37 +28,44 @@ struct GptClientFactory {
 }
 
 impl GptClientFactory {
-    fn new(config: &Config) -> GptClientFactory {
-        GptClientFactory {
+    fn new(config: &Config) -> Self {
+        Self {
             config: config.gpt.clone(),
         }
     }
 }
 
-impl PollableClientFactory::<GptClient> for GptClientFactory {
+impl PollableClientFactory<GptClient> for GptClientFactory {
     fn build_client(&self) -> GptClient {
         GptClient::new(&self.config)
     }
 
-    fn get_config(&self) -> &config::Gpt {
+    fn get_config(&self) -> &Gpt {
         &self.config
     }
 }
 
 
-fn read_config() -> Result<config::Config, anyhow::Error> {
-    #[cfg(not(debug_assertions))]
+fn read_config() -> Result<Config> {
     let config = {
-        let args: Vec<String> = env::args().collect();
-        config::Config::read(args.get(1).expect("config file path must be passed as first argument"))?
-    };
-
-    #[cfg(debug_assertions)]
-    let config = {
-        let config_file = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("assets")
-            .join("config.toml");
-        config::Config::read(config_file.to_str().unwrap())?
+        #[cfg(not(debug_assertions))]
+        {
+            let args: Vec<String> = env::args().collect();
+            let config_path = args.get(1).ok_or_else(|| {
+                anyhow::anyhow!("Config file path must be passed as first argument")
+            })?;
+            Config::read(config_path)?
+        }
+        #[cfg(debug_assertions)]
+        {
+            let config_file = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("assets")
+                .join("config.toml");
+            let config_path = config_file.to_str().ok_or_else(|| {
+                anyhow::anyhow!("Invalid UTF-8 in config path")
+            })?;
+            Config::read(config_path)?
+        }
     };
 
     Ok(config)
@@ -75,31 +79,28 @@ async fn main() -> Result<()> {
     let env_filter = EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| "info".into());
     
-    match &config.logfile {
-        Some(logfile) => {
-            // Log to file - disable colors
-            let file = std::fs::OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open(logfile)?;
+    if let Some(logfile) = &config.logfile {
+        // Log to file - disable colors
+        let file = fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(logfile)?;
+        
+        tracing_subscriber::fmt()
+            .with_env_filter(env_filter)
+            .with_writer(file)
+            .with_ansi(false)
+            .init();
             
-            tracing_subscriber::fmt()
-                .with_env_filter(env_filter)
-                .with_writer(file)
-                .with_ansi(false)  // Disable colors for file output
-                .init();
-                
-            info!("logging to file: {}", logfile);
-        }
-        None => {
-            // Log to stdout (default) - keep colors
-            tracing_subscriber::fmt()
-                .with_env_filter(env_filter)
-                .with_ansi(true)   // Enable colors for stdout
-                .init();
-                
-            info!("logging to stdout");
-        }
+        info!("Logging to file: {}", logfile);
+    } else {
+        // Log to stdout (default) - keep colors
+        tracing_subscriber::fmt()
+            .with_env_filter(env_filter)
+            .with_ansi(true)
+            .init();
+            
+        info!("Logging to stdout");
     }
     
     // Initialize locale system

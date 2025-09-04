@@ -1,25 +1,17 @@
 
 
-#![allow(unused_attributes)]
-#![allow(unused_imports)]
-#![allow(dead_code)]
-
-//use crate::fs::TryLockError::Error;
-use crate::{config, string_enum};
 use anyhow::{anyhow, Context, Result};
-use reqwest::header::{AUTHORIZATION, CONTENT_TYPE};
-use serde_json::{json, Value};
-use std::env;
-use std::fs;
-use std::path::{Path, PathBuf};
 use log::{error, info};
+use reqwest::header::{AUTHORIZATION, CONTENT_TYPE};
 use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
+
+use crate::{config, string_enum};
 
 string_enum! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum Model {
-        //Gpt4o => "gpt-4o-mini",
-        Gpt5  => "gpt-5",
+        Gpt5 => "gpt-5",
         Gpt5Mini => "gpt-5-mini",
         Gpt5Nano => "gpt-5-nano",
     }
@@ -47,7 +39,7 @@ pub enum OutputItem {
         #[serde(default)]
         content: Vec<ContentPart>
     },
-    #[serde(other)] // ignore "reasoning" or anything else
+    #[serde(other)]
     Other,
 }
 
@@ -56,9 +48,6 @@ pub enum OutputItem {
 pub struct Response {
     #[serde(default)]
     output: Vec<OutputItem>,
-
-
-    //output_text: Option<String>, // sometimes provided by API
 }
 
 impl Response {
@@ -79,14 +68,13 @@ impl Response {
 
 impl Answer {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
-        Ok(Self {
-            json: serde_json::from_slice(&bytes).context("JSON parse failed")?,
-            response: serde_json::from_slice(&bytes)?,
-        })
+        let json = serde_json::from_slice(bytes).context("JSON parse failed")?;
+        let response = serde_json::from_slice(bytes)?;
+        Ok(Self { json, response })
     }
 
     pub fn to_string(&self) -> Option<String> {
-        self.response.first_output_text_typed().map(|s| s.to_string())
+        self.response.first_output_text_typed().map(ToString::to_string)
     }
 
     pub fn dump(&self) {
@@ -118,8 +106,8 @@ pub struct QuestionParams {
     temperature: Option<f32>,
 }
 
-impl QuestionParams {
-    pub fn default() -> Self {
+impl Default for QuestionParams {
+    fn default() -> Self {
         Self {
             verbosity: Verbosity::Medium,
             model: Model::Gpt5Nano,
@@ -128,25 +116,24 @@ impl QuestionParams {
             temperature: None,
         }
     }
+}
 
-    #[allow(dead_code)]
+impl QuestionParams {
     pub fn set_model(&mut self, model: Model) {
         self.model = model;
     }
 
-    #[allow(dead_code)]
     pub fn set_instructions<S: AsRef<str>>(&mut self, instructions: S) {
         let s = instructions.as_ref().trim();
-        if s.len() <= 1 { return };
-        self.instructions = Some(s.to_owned());
+        if s.len() > 1 {
+            self.instructions = Some(s.to_owned());
+        }
     }
 
-    #[allow(dead_code)]
     pub fn set_max_output_tokens(&mut self, max_output_tokens: i32) {
         self.max_output_tokens = Some(max_output_tokens);
     }
 
-    #[allow(dead_code)]
     pub fn set_temperature(&mut self, temperature: f32) {
         self.temperature = Some(temperature);
     }
@@ -163,20 +150,20 @@ struct RequestBody<'a> {
     temperature: Option<f32>,
 }
 
- impl GptClient {
+impl GptClient {
     pub fn new(config: &config::Gpt) -> Self {
         Self {
             client: reqwest::Client::new(),
-            key: config.gpt_key.clone()
+            key: config.gpt_key.clone(),
         }
     }
 
-    fn get_key(&self) -> anyhow::Result<&str> {
-        Ok(&self.key)
+    fn get_key(&self) -> &str {
+        &self.key
     }
 
-    pub async fn ask(&self, question: &str, params: &QuestionParams) -> Result<Answer, anyhow::Error> {
-        info!("asking...");
+    pub async fn ask(&self, question: &str, params: &QuestionParams) -> Result<Answer> {
+        info!("Asking...");
         let body = RequestBody {
             model: params.model.to_string(),
             input: question,
@@ -186,31 +173,29 @@ struct RequestBody<'a> {
             text: json!({ "verbosity": params.verbosity.to_string() }),
         };
         let body = serde_json::to_value(&body)?;
+        
         let resp = self.client
             .post("https://api.openai.com/v1/responses")
             .header(CONTENT_TYPE, "application/json")
-            .header(AUTHORIZATION, format!("Bearer {}", self.get_key()?))
+            .header(AUTHORIZATION, format!("Bearer {}", self.get_key()))
             .json(&body)
             .send()
-            .await;
-
-        let resp = match resp {
-            Ok(resp) => resp,
-            Err(err) => {
-                error!("OpenAI error: {}", err.to_string());
-                return Err(anyhow!("OpenAI error: {}", err.to_string()));
-            }
-        };
+            .await
+            .map_err(|err| {
+                error!("OpenAI error: {}", err);
+                anyhow!("OpenAI error: {}", err)
+            })?;
 
         let status = resp.status();
-        let bytes = resp.bytes().await.context("reading body failed")?;
+        let bytes = resp.bytes().await.context("Reading body failed")?;
+        
         if !status.is_success() {
             let text = String::from_utf8_lossy(&bytes);
             error!("OpenAI error {}: {}", status, text);
             anyhow::bail!("OpenAI error {}: {}", status, text);
         }
 
-        Ok(Answer::from_bytes(&bytes)?)
+        Answer::from_bytes(&bytes)
     }
 }
 

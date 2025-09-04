@@ -1,32 +1,19 @@
-#![allow(dead_code)]
-#![allow(unused_variables)]
-#![allow(unused_imports)]
-
 mod ask_prompt_component;
-mod server_query;
-mod game_component;
 mod board_component;
-mod to_html;
+mod game_component;
 mod locale;
+mod server_query;
+mod to_html;
 
-use std::future::pending;
-use std::time::Duration;
-use gloo::net::http::{Request, Response};
+use gloo_storage::{LocalStorage, Storage};
+use log::info;
 use yew::prelude::*;
 use yew_router::prelude::*;
 use yew_router::hooks::use_navigator;
-use log::info;
-use gloo_storage::{LocalStorage, Storage};
-use wasm_bindgen::JsValue;
-use anyhow::{Context, Result};
-use log::kv::Source;
-use crate::server_query::*;
-use crate::game_component::*;
 
-struct SoftState {
-    n: UseStateHandle<i32>,
-    error_message: UseStateHandle<String>,
-}
+use crate::game_component::Game;
+use crate::server_query::fetch_text;
+
 
 #[derive(Clone, Routable, PartialEq)]
 enum Route {
@@ -39,43 +26,37 @@ enum Route {
     NotFound,
 }
 
-
-#[derive(Properties, PartialEq)]
-pub struct Props {
-    #[prop_or_default]
-    pub is_loading: bool,
-    #[prop_or(AttrValue::Static("Bob"))]
-    pub name: AttrValue,
-}
-
-fn switch(routes: Route) -> Html {
-    info!("switch");
-    match routes {
-        Route::Game => html! {
-            <Game />
-        },
-        Route::Error => html! {
-            <Error />
-        },
+fn switch(route: Route) -> Html {
+    info!("Switching to route");
+    match route {
+        Route::Game => html! { <Game /> },
+        Route::Error => html! { <Error /> },
         Route::NotFound => html! { <h1>{ "404" }</h1> },
     }
 }
 
 #[function_component]
 fn Home() -> Html {
-    let navigator = use_navigator().unwrap();
-    let onclick = Callback::from(move |_| wasm_bindgen_futures::spawn_local({
+    let navigator = use_navigator().expect("Must be used within a Router");
+    let onclick = Callback::from(move |_| {
         let navigator = navigator.clone();
-        async move {
-            if let Ok(token) = fetch_text("/api/game/new").await {
-                info!("res: {:?}", token);
-                LocalStorage::set("token", &token).unwrap();
-                navigator.push(&Route::Game);
-            } else {
-                navigator.push(&Route::Error);
+        wasm_bindgen_futures::spawn_local(async move {
+            match fetch_text("/api/game/new").await {
+                Ok(token) => {
+                    info!("Got token: {:?}", token);
+                    if LocalStorage::set("token", &token).is_ok() {
+                        navigator.push(&Route::Game);
+                    } else {
+                        navigator.push(&Route::Error);
+                    }
+                }
+                Err(_) => {
+                    navigator.push(&Route::Error);
+                }
             }
-        }
-    }));
+        });
+    });
+    
     html! {
         <div>
             <h1>{ "Game" }</h1>
@@ -85,29 +66,21 @@ fn Home() -> Html {
 }
 
 
-#[hook]
-fn use_navigator_expect() -> Navigator {
-    use_navigator().expect("use_navigator_expect: must be rendered inside a <Router>")
-}
 
 
 #[function_component]
 fn App() -> Html {
-    let counter = use_state(|| 0);
-    info!("counter is: {:?}", counter);
-    let res = html! {
+    html! {
         <BrowserRouter>
-            <Switch<Route> render={switch} /> // <- must be child of <BrowserRouter>
+            <Switch<Route> render={switch} />
         </BrowserRouter>
-    };
-    info!("Ok");
-    res
+    }
 }
 
 #[function_component]
 fn Error() -> Html {
     html! {
-        <h1>{ "ServerError" }</h1>
+        <h1>{ "Server Error" }</h1>
     }
 }
 
