@@ -8,7 +8,9 @@ use yew_router::hooks::use_navigator;
 use crate::server_query::{fetch_new_game_token, fetch_text, send_question};
 use crate::ask_prompt_component::AskPrompt;
 use crate::board_component::{Act, Board, BoardState};
-use crate::locale::{t, get_current_language, set_language, t_for_language};
+use crate::locale::{t, get_current_language};
+use crate::language_logic::{should_show_language_dialog, switch_language};
+use crate::language_selector_component::LanguageSelector;
 use shared::locale::Language;
 use wasm_bindgen_futures::spawn_local;
 use shared::messages::{GameState, ServerResponse, Status};
@@ -25,9 +27,9 @@ pub fn Game() -> Html {
     let pending = use_state(|| false);
     let active_game = use_state(|| false);
     let show_instructions = use_state(|| true);
-    let language_version = use_state(|| 0); // For triggering re-renders when language changes
     let show_language_dialog = use_state(|| false);
     let pending_language = use_state(|| None::<Language>);
+    let language_version = use_state(|| 0);
     let board = use_reducer(BoardState::default);
 
     let (token, has_token) = match LocalStorage::get::<String>("token") {
@@ -174,37 +176,36 @@ pub fn Game() -> Html {
     };
 
     let on_language_change = {
-        let language_version = language_version.clone();
-        let active_game = active_game.clone();
         let show_language_dialog = show_language_dialog.clone();
         let pending_language = pending_language.clone();
+        let language_version = language_version.clone();
+        let active_game = active_game.clone();
+        
         Callback::from(move |lang: Language| {
-            if *active_game {
-                if get_current_language() == lang {
-                    return;
-                }
-                // Show confirmation dialog if game is active
+            if should_show_language_dialog(lang.clone(), *active_game) {
                 pending_language.set(Some(lang));
                 show_language_dialog.set(true);
             } else {
-                // Switch language immediately if no game is active
-                set_language(lang);
+                // Switch immediately if no active game
+                switch_language(lang);
                 language_version.set(*language_version + 1);
             }
         })
     };
 
     let on_confirm_language_change = {
-        let language_version = language_version.clone();
         let show_language_dialog = show_language_dialog.clone();
         let pending_language = pending_language.clone();
+        let language_version = language_version.clone();
         let board = board.clone();
         let active_game = active_game.clone();
-        Callback::from(move |confirm: bool| {
+        
+        Callback::from(move |confirmed: bool| {
             show_language_dialog.set(false);
-            if confirm {
+            
+            if confirmed {
                 if let Some(lang) = (*pending_language).clone() {
-                    set_language(lang);
+                    switch_language(lang);
                     language_version.set(*language_version + 1);
                     // Clear the token and invalidate the game state
                     let _ = LocalStorage::delete("token");
@@ -212,68 +213,20 @@ pub fn Game() -> Html {
                     active_game.set(false);
                 }
             }
+            
             pending_language.set(None);
         })
     };
 
-    let current_language = get_current_language();
-    let pl = pending_language.as_ref().unwrap_or(&current_language);
 
     html! {
         <>
-            <div class="language-selector">
-                <button 
-                    class={if current_language == Language::English { "flag-button active" } else { "flag-button" }}
-                    onclick={
-                        let on_language_change = on_language_change.clone();
-                        Callback::from(move |_| on_language_change.emit(Language::English))
-                    }
-                    title="English"
-                >
-                    {"🇬🇧"}
-                </button>
-                <button 
-                    class={if current_language == Language::Czech { "flag-button active" } else { "flag-button" }}
-                    onclick={
-                        let on_language_change = on_language_change.clone();
-                        Callback::from(move |_| on_language_change.emit(Language::Czech))
-                    }
-                    title="Česky"
-                >
-                    {"🇨🇿"}
-                </button>
-            </div>
-
-            // Language confirmation dialog
-            if *show_language_dialog {
-
-
-                <div class="dialog-overlay">
-                    <div class="dialog-box">
-                        <p class="dialog-message">{t_for_language(&pl, "dialog.confirm_language_switch")}</p>
-                        <div class="dialog-buttons">
-                            <button 
-                                class="dialog-button dialog-button--yes"
-                                onclick={
-                                    let on_confirm = on_confirm_language_change.clone();
-                                    Callback::from(move |_| on_confirm.emit(true))
-                                }
-                            >
-                                {t("dialog.yes")}
-                            </button>
-                            <button 
-                                class="dialog-button dialog-button--no"
-                                onclick={
-                                    let on_confirm = on_confirm_language_change.clone();
-                                    Callback::from(move |_| on_confirm.emit(false))
-                                }
-                            >
-                                {t("dialog.no")}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            }
+            <LanguageSelector 
+                on_language_change={on_language_change}
+                pending_language={(*pending_language).clone()}
+                show_dialog={*show_language_dialog}
+                on_confirm_change={on_confirm_language_change}
+            />
 
             <h1>{t("ui.game_header")}</h1>
 

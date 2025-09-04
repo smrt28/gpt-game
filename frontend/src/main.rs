@@ -1,6 +1,8 @@
 mod ask_prompt_component;
 mod board_component;
 mod game_component;
+mod language_logic;
+mod language_selector_component;
 mod locale;
 mod server_query;
 mod to_html;
