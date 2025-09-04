@@ -117,6 +117,11 @@ impl GameManager {
         let mut record = Record::new(pending_question.text);
         record.set_answer(answer);
         game.add_record(record);
+
+        if let Ok(notifier) = self.get_notifier(token) {
+            notifier.notify_one();
+        }
+
         Ok(())
     }
 
