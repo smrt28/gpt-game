@@ -80,7 +80,7 @@ impl GameManager {
         game.target = Some(identity.to_string());
         self.game_states.insert(token, game);
         self.helpers.insert(token, StateHelper::default());
-        info!("New game: {:?}; {}; lang={}", token, identity, lang.to_code());
+        info!("*** New game: {}; [{}]; lang={}", token.to_string(), identity, lang.to_code());
         token
     }
 

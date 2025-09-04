@@ -7,9 +7,10 @@ use std::time::Duration;
 use anyhow::{Context, Result};
 use axum::{
     body::Bytes,
-    extract::{ConnectInfo, Path, Query, State},
+    extract::{ConnectInfo, Path, Query, Request, State},
     http::StatusCode,
-    response::{IntoResponse, Redirect},
+    middleware::{self, Next},
+    response::{IntoResponse, Redirect, Response},
     routing::{get, post},
     Router,
 };
@@ -110,20 +111,29 @@ impl AppState {
 type Shared = Arc<AppState>;
 
 
+async fn log_requests(
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    req: Request,
+    next: Next,
+) -> Response {
+    info!("{} {} {}", req.method(), req.uri().path_and_query().map(|x| x.as_str()).unwrap_or(""), addr.ip());
+    next.run(req).await
+}
+
 fn logging() -> TraceLayer<SharedClassifier<ServerErrorsAsFailures>> {
     TraceLayer::new_for_http()
         .make_span_with(
             DefaultMakeSpan::new()
-                .level(Level::INFO)
-                .include_headers(true)
+                .level(Level::DEBUG)
+                .include_headers(false)
         )
         .on_request(
             DefaultOnRequest::new()
-                .level(Level::INFO)
+                .level(Level::DEBUG)
         )
         .on_response(
             DefaultOnResponse::new()
-                .level(Level::INFO)
+                .level(Level::DEBUG)
                 .include_headers(false)
         )
         .on_failure(DefaultOnFailure::new().level(Level::ERROR))
@@ -177,6 +187,7 @@ pub async fn run_server(
     let app = app
         .fallback(handler_404)
         .with_state(state)
+        .layer(middleware::from_fn(log_requests))
         .layer(logging());
 
     let addr = SocketAddr::from(([127, 0, 0, 1], config.www.port));
@@ -207,7 +218,7 @@ async fn game(State(state): State<Shared>,
                       Query(query): Query<WaitParam>
 
 ) -> Result<String, AppError> {
-    info!("game request from {}, token: {}", addr, token_str);
+    info!("game request from {}", addr);
     query.check()?;
     let token = Token::from_string(token_str.as_str()).map_err(|e| {
         warn!("invalid token from {}: {} - {}", addr, token_str, e);
@@ -216,13 +227,13 @@ async fn game(State(state): State<Shared>,
     let pending = state.game_manager.is_pending(&token)?;
 
     if pending && query.wait == 1 {
-        info!("client {} waiting for answer on token {}", addr, token_str);
+        info!("client {} waiting for answer", addr);
         let res = state.game_manager.wait_for_answer(&token, Duration::new(5, 0)).await;
         if res.is_err() {
-            info!("answer not ready for {} ({}), reason={}", addr, token_str, res.as_ref().unwrap_err());
+            info!("answer not ready for {}, reason={}", addr, res.as_ref().unwrap_err());
             res?;
         }
-        info!("answer ready for {} ({})", addr, token_str);
+        info!("answer ready for {}", addr);
     }
 
     let status = if pending {Status::Pending} else {Status::Ok};
@@ -264,11 +275,11 @@ async fn ask(
     })?;
 
     let Some(question) = sanitize_question(&String::from_utf8_lossy(&body).to_string()) else {
-        info!("invalid question from {} ({})", addr, token_str);
+        info!("invalid question from {}", addr);
         return Err(AppError::InvalidToken);
     };
 
-    info!("question from {} ({}): \"{}\"", addr, token_str, question);
+    info!("question from {}: \"{}\"", addr, question);
 
     let mut gpt_client = state.client_factory.pop();
     gpt_client.update().await.unwrap();
@@ -287,20 +298,20 @@ async fn ask(
     tokio::spawn(async move {
 
         if is_cheat(&question) {
-            info!("cheat detected from {} ({}): \"{}\"", addr, token_str, question);
+            info!("cheat detected from {}: \"{}\"", addr, question);
             let answer = shared::messages::Answer::get_lose(&question_builder.get_target());
             let _ = state.game_manager.answer_pending_question(&token, &answer);
             let _ = state.game_manager.finish_game(&token);
             return
         }
 
-        info!("sending question to GPT for {} ({}): \"{}\"", addr, token_str, question);
+        info!("sending question to GPT for {}: \"{}\"", addr, question);
         let result = gpt_client.client().ask(&question_builder.build_question(),
                                              &question_builder.build_params(&state.config)).await;
 
         match result {
             Ok(gpt_answer) => {
-                info!("GPT response received OK for {} ({})", addr, token_str);
+                info!("GPT response received OK for {}", addr);
 
                 let s = gpt_answer.to_string().unwrap_or("UNABLE; this is weird".to_string());
 
@@ -308,7 +319,7 @@ async fn ask(
                 let _ = state.game_manager.answer_pending_question(&token, &answer);
             }
             Err(err) => {
-                info!("GPT response ERROR for {} ({}): {}", addr, token_str, err);
+                info!("GPT response ERROR for {}: {}", addr, err);
                 let _ = state.game_manager.handle_error_response(&token,
                        GameError::GPTError(err.to_string()));
             }

@@ -49,7 +49,6 @@ impl GameStepBuilder {
     }
 
 
-
     pub fn set_question(mut self, question: &str) -> Self {
         if let Ok(q) = shared::gpt::sanitize_question(&question.to_string()) {
             self.question = Some(q);
