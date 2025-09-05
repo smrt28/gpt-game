@@ -313,20 +313,10 @@ html {
   padding-right: max(16px, env(safe-area-inset-right));
 }
 
-.language-selector {
-  top: max(20px, env(safe-area-inset-top) + 10px);
-  right: max(20px, env(safe-area-inset-right) + 10px);
-}
-
 @media (max-width: 560px) {
   .board {
     padding-left: max(12px, env(safe-area-inset-left));
     padding-right: max(12px, env(safe-area-inset-right));
-  }
-
-  .language-selector {
-    top: max(10px, env(safe-area-inset-top) + 5px);
-    right: max(10px, env(safe-area-inset-right) + 5px);
   }
 }
 
@@ -402,7 +392,7 @@ html {
 }
 
 h1 {
-  font-size: 3rem;             /* Big and bold */
+  font-size: 2.5rem;             /* Big and bold */
   font-weight: 700;
   text-align: center;
   margin: 1rem 0 1rem 0;
@@ -549,7 +539,7 @@ h1 {
 @media (max-width: 560px) {
   .new-game {
     width: 100%;
-    max-width: 300px;
+    max-width: 200px;
     padding: 0.8rem 1.5rem;
     font-size: 1.1rem;
     min-height: 48px;
@@ -582,6 +572,7 @@ h1 {
   top: 20px;
   right: 20px;
   display: flex;
+  flex-direction: column;
   gap: 8px;
   z-index: 1000;
 }
@@ -629,6 +620,7 @@ h1 {
     right: 10px;
     /* Ensure it doesn't interfere with scrolling */
     position: fixed;
+    flex-direction: column;
   }
 
   .flag-button {
