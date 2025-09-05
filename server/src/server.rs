@@ -39,6 +39,7 @@ use shared::{
 };
 use serde::de::Deserializer;
 use shared::locale::Language;
+use crate::config::DirType;
 use crate::locale::t;
 
 fn de_opt_bool<'de, D>(deserializer: D) -> Result<i32, D::Error>
@@ -190,7 +191,7 @@ pub async fn run_server(
     let static_svc = ServiceBuilder::new()
         .layer(logging())
         .service(
-            ServeDir::new(&config.www.www)
+            ServeDir::new(&config.dirs.get_path(DirType::Www))
                 .append_index_html_on_directories(true)
                 .precompressed_br()
                 .precompressed_gzip(),
@@ -202,11 +203,12 @@ pub async fn run_server(
     let static_svc = ServiceBuilder::new()
         .layer(logging())
         .service(
-            ServeDir::new(&config.www.dist)
+            ServeDir::new(&config.dirs.get_path(DirType::Dist))
                 .append_index_html_on_directories(true)
                 .precompressed_br()
                 .precompressed_gzip()
-                .not_found_service(ServeFile::new(PathBuf::new().join(&config.www.dist).join("index.html")))
+                .not_found_service(ServeFile::new(PathBuf::new()
+                    .join(&config.dirs.get_path(DirType::Dist)).join("index.html")))
         );
 
     app = app.nest_service("/run", static_svc);

@@ -1,18 +1,15 @@
 debug=true
 logfile="/tmp/gggame.log"
+
 [www]
 port = 3000
-# path to server/www directory
-www = "/home/smrt/w/gpt-game/server/www"
-# path to wwweb dist directory
-dist = "/home/smrt/w/gpt-game/frontend/dist"
 
 [gpt]
-# path to server assets directory
-path = "/home/smrt/w/gpt-game/server/assets"
 instructions_file = "instructions.txt"
 key_file="/home/smrt/.gptkey"
 max_clients_count=10
 
-identities_file_cs="identities_cs.txt"
-identities_file_en="identities_en.txt"
+[dirs]
+pkg_www = "/home/smrt/w/gpt-game/server/www"
+pkg_dist = "/home/smrt/w/gpt-game/frontend/dist"
+pkg_assets = "/home/smrt/w/gpt-game/server/assets"
