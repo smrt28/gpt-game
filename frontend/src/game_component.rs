@@ -25,7 +25,7 @@ pub fn Game() -> Html {
     let pending = use_state(|| false);
     let active_game = use_state(|| false);
     let show_instructions = use_state(|| true);
-    let language_version = use_state(|| 0);
+    let language_render_trigger = use_state(|| 0u32);
     let board = use_reducer(BoardState::default);
 
     let (token, has_token) = match LocalStorage::get::<String>("token") {
@@ -178,13 +178,6 @@ pub fn Game() -> Html {
         })
     };
 
-    let language_version_setter = {
-        let language_version = language_version.clone();
-        Callback::from(move |new_version: i32| {
-            language_version.set(new_version);
-        })
-    };
-
     let board_dispatch = {
         let board = board.clone();
         Callback::from(move |action: Act| {
@@ -196,6 +189,13 @@ pub fn Game() -> Html {
         let active_game = active_game.clone();
         Callback::from(move |_| {
             active_game.set(false);
+        })
+    };
+
+    let on_language_changed = {
+        let language_render_trigger = language_render_trigger.clone();
+        Callback::from(move |_| {
+            language_render_trigger.set(*language_render_trigger + 1);
         })
     };
 
@@ -234,10 +234,9 @@ pub fn Game() -> Html {
                         <div class="game-bar">
             <LanguageSelector
                 has_active_game={*active_game}
-                board_dispatch={board_dispatch}
-                on_game_invalidated={on_game_invalidated}
-                language_version_setter={language_version_setter}
-                language_version={*language_version}
+                board_dispatch={Some(board_dispatch)}
+                on_game_invalidated={Some(on_game_invalidated)}
+                on_language_changed={Some(on_language_changed)}
             />
             </div>
                     </div>

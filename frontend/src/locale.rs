@@ -73,6 +73,12 @@ impl LocaleManager {
         strings.insert("dialog.yes".to_string(), "Yes".to_string());
         strings.insert("dialog.no".to_string(), "No".to_string());
         
+        // Custom game design
+        strings.insert("custom.your_name_label".to_string(), "Your name:".to_string());
+        strings.insert("custom.your_name_placeholder".to_string(), "Enter your name".to_string());
+        strings.insert("custom.identity_label".to_string(), "Identity to guess:".to_string());
+        strings.insert("custom.identity_placeholder".to_string(), "Who should your friend guess?".to_string());
+        
         self.translations.insert(Language::English, strings);
     }
     
@@ -82,7 +88,8 @@ impl LocaleManager {
         // Page titles and headers
         strings.insert("ui.page_title".to_string(), "Hádej kdo jsem".to_string());
         strings.insert("ui.game_header".to_string(), "Hádej kdo jsem".to_string());
-        strings.insert("ui.new_game".to_string(), "Hra pro přítele".to_string());
+        strings.insert("ui.new_game".to_string(), "Nová hra".to_string());
+        strings.insert("ui.new_custom_game".to_string(), "Hra pro přítele".to_string());
         strings.insert("ui.404".to_string(), "404".to_string());
         strings.insert("ui.server_error".to_string(), "Chyba serveru".to_string());
         strings.insert("ui.custom_game_design".to_string(), "Vyrob si svou hru".to_string());
@@ -113,6 +120,12 @@ impl LocaleManager {
         strings.insert("dialog.confirm_language_switch".to_string(), "Změna jazyka ukončí aktuální hru. Opravdu mám hru ukončit?".to_string());
         strings.insert("dialog.yes".to_string(), "Ano".to_string());
         strings.insert("dialog.no".to_string(), "Ne".to_string());
+        
+        // Custom game design
+        strings.insert("custom.your_name_label".to_string(), "Tvé jméno:".to_string());
+        strings.insert("custom.your_name_placeholder".to_string(), "Zadej své jméno".to_string());
+        strings.insert("custom.identity_label".to_string(), "Identita k hádání:".to_string());
+        strings.insert("custom.identity_placeholder".to_string(), "Koho má tvůj přítel hádat?".to_string());
         
         self.translations.insert(Language::Czech, strings);
     }

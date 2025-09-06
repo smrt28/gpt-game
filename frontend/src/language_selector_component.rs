@@ -7,11 +7,14 @@ use gloo_storage::{LocalStorage, Storage};
 
 #[derive(Properties, PartialEq)]
 pub struct LanguageSelectorProps {
+    #[prop_or(false)]
     pub has_active_game: bool,
-    pub board_dispatch: Callback<Act>,
-    pub on_game_invalidated: Callback<()>,
-    pub language_version_setter: Callback<i32>,
-    pub language_version: i32,
+    #[prop_or(None)]
+    pub board_dispatch: Option<Callback<Act>>,
+    #[prop_or(None)]
+    pub on_game_invalidated: Option<Callback<()>>,
+    #[prop_or(None)]
+    pub on_language_changed: Option<Callback<()>>,
 }
 
 #[function_component(LanguageSelector)]
@@ -19,13 +22,14 @@ pub fn language_selector(props: &LanguageSelectorProps) -> Html {
     let current_language = get_current_language();
     let show_language_dialog = use_state(|| false);
     let pending_language = use_state(|| None::<Language>);
+    let render_trigger = use_state(|| 0u32);
     let pl = pending_language.as_ref().unwrap_or(&current_language);
 
     let on_language_change = {
         let show_language_dialog = show_language_dialog.clone();
         let pending_language = pending_language.clone();
-        let language_version_setter = props.language_version_setter.clone();
-        let language_version = props.language_version;
+        let render_trigger = render_trigger.clone();
+        let on_language_changed = props.on_language_changed.clone();
         let has_active_game = props.has_active_game;
         
         Callback::from(move |lang: Language| {
@@ -35,7 +39,10 @@ pub fn language_selector(props: &LanguageSelectorProps) -> Html {
             } else {
                 // Switch immediately if no active game
                 switch_language(lang);
-                language_version_setter.emit(language_version + 1);
+                render_trigger.set(*render_trigger + 1);
+                if let Some(callback) = &on_language_changed {
+                    callback.emit(());
+                }
             }
         })
     };
@@ -43,10 +50,10 @@ pub fn language_selector(props: &LanguageSelectorProps) -> Html {
     let on_confirm_language_change = {
         let show_language_dialog = show_language_dialog.clone();
         let pending_language = pending_language.clone();
-        let language_version_setter = props.language_version_setter.clone();
-        let language_version = props.language_version;
+        let render_trigger = render_trigger.clone();
         let board_dispatch = props.board_dispatch.clone();
         let on_game_invalidated = props.on_game_invalidated.clone();
+        let on_language_changed = props.on_language_changed.clone();
         
         Callback::from(move |confirmed: bool| {
             show_language_dialog.set(false);
@@ -54,11 +61,20 @@ pub fn language_selector(props: &LanguageSelectorProps) -> Html {
             if confirmed {
                 if let Some(lang) = (*pending_language).clone() {
                     switch_language(lang);
-                    language_version_setter.emit(language_version + 1);
-                    // Clear the token and invalidate the game state
-                    let _ = LocalStorage::delete("token");
-                    board_dispatch.emit(Act::InvalidGame);
-                    on_game_invalidated.emit(());
+                    render_trigger.set(*render_trigger + 1);
+                    if let Some(callback) = &on_language_changed {
+                        callback.emit(());
+                    }
+                    // Clear the token and invalidate the game state if callbacks are provided
+                    if board_dispatch.is_some() {
+                        let _ = LocalStorage::delete("token");
+                        if let Some(dispatch) = &board_dispatch {
+                            dispatch.emit(Act::InvalidGame);
+                        }
+                        if let Some(invalidated) = &on_game_invalidated {
+                            invalidated.emit(());
+                        }
+                    }
                 }
             }
             
