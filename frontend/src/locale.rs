@@ -78,6 +78,8 @@ impl LocaleManager {
         strings.insert("custom.your_name_placeholder".to_string(), "Enter your name".to_string());
         strings.insert("custom.identity_label".to_string(), "Identity to guess:".to_string());
         strings.insert("custom.identity_placeholder".to_string(), "Who should your friend guess?".to_string());
+        strings.insert("custom.cancel_button".to_string(), "Cancel".to_string());
+        strings.insert("custom.create_button".to_string(), "Create".to_string());
         
         self.translations.insert(Language::English, strings);
     }
@@ -126,6 +128,8 @@ impl LocaleManager {
         strings.insert("custom.your_name_placeholder".to_string(), "Zadej své jméno".to_string());
         strings.insert("custom.identity_label".to_string(), "Identita k hádání:".to_string());
         strings.insert("custom.identity_placeholder".to_string(), "Koho má tvůj přítel hádat?".to_string());
+        strings.insert("custom.cancel_button".to_string(), "Zrušit".to_string());
+        strings.insert("custom.create_button".to_string(), "Vytvořit".to_string());
         
         self.translations.insert(Language::Czech, strings);
     }
