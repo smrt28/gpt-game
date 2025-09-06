@@ -67,9 +67,6 @@ fn Home() -> Html {
     }
 }
 
-
-
-
 #[function_component]
 fn App() -> Html {
     html! {

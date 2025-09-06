@@ -221,12 +221,7 @@ pub fn Game() -> Html {
 
     html! {
         <>
-            <LanguageSelector 
-                on_language_change={on_language_change}
-                pending_language={(*pending_language).clone()}
-                show_dialog={*show_language_dialog}
-                on_confirm_change={on_confirm_language_change}
-            />
+
 
             <h1>{t("ui.game_header")}</h1>
 
@@ -255,7 +250,16 @@ pub fn Game() -> Html {
                             <li>{t("game.rule1")}</li>
                             <li>{t("game.rule2")}</li>
                             <li>{t("game.rule3")}</li>
+
                         </ul>
+                        <div class="game-bar">
+            <LanguageSelector
+                on_language_change={on_language_change}
+                pending_language={(*pending_language).clone()}
+                show_dialog={*show_language_dialog}
+                on_confirm_change={on_confirm_language_change}
+            />
+            </div>
                     </div>
                 }
             </div>
