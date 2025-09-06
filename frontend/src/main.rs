@@ -6,15 +6,11 @@ mod language_selector_component;
 mod locale;
 mod server_query;
 mod to_html;
-
-use gloo_storage::{LocalStorage, Storage};
 use log::info;
 use yew::prelude::*;
 use yew_router::prelude::*;
-use yew_router::hooks::use_navigator;
-
 use crate::game_component::Game;
-use crate::server_query::fetch_text;
+//use crate::server_query::fetch_text;
 
 
 #[derive(Clone, Routable, PartialEq)]
@@ -34,36 +30,6 @@ fn switch(route: Route) -> Html {
         Route::Game => html! { <Game /> },
         Route::Error => html! { <Error /> },
         Route::NotFound => html! { <h1>{ "404" }</h1> },
-    }
-}
-
-#[function_component]
-fn Home() -> Html {
-    let navigator = use_navigator().expect("Must be used within a Router");
-    let onclick = Callback::from(move |_| {
-        let navigator = navigator.clone();
-        wasm_bindgen_futures::spawn_local(async move {
-            match fetch_text("/api/game/new").await {
-                Ok(token) => {
-                    info!("Got token: {:?}", token);
-                    if LocalStorage::set("token", &token).is_ok() {
-                        navigator.push(&Route::Game);
-                    } else {
-                        navigator.push(&Route::Error);
-                    }
-                }
-                Err(_) => {
-                    navigator.push(&Route::Error);
-                }
-            }
-        });
-    });
-    
-    html! {
-        <div>
-            <h1>{ "Game" }</h1>
-            <button {onclick}>{ "New game" }</button>
-        </div>
     }
 }
 

@@ -85,6 +85,8 @@ pub fn board(props: &BoardProps) -> Html {
                 html! {
                   <div class="button-row">
                     <button class="new-game" {onclick}>{ t("ui.new_game") }</button>
+
+                    <button class="new-game">{ t("ui.new_custom_game") }</button>
                   </div>
                 }
             } else {
