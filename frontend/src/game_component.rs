@@ -9,9 +9,7 @@ use crate::server_query::{fetch_new_game_token, fetch_text, send_question};
 use crate::ask_prompt_component::AskPrompt;
 use crate::board_component::{Act, Board, BoardState};
 use crate::locale::{t, get_current_language};
-use crate::language_logic::{should_show_language_dialog, switch_language};
 use crate::language_selector_component::LanguageSelector;
-use shared::locale::Language;
 use wasm_bindgen_futures::spawn_local;
 use shared::messages::{GameState, ServerResponse, Status};
 use shared::gpt::check_question;
@@ -27,8 +25,6 @@ pub fn Game() -> Html {
     let pending = use_state(|| false);
     let active_game = use_state(|| false);
     let show_instructions = use_state(|| true);
-    let show_language_dialog = use_state(|| false);
-    let pending_language = use_state(|| None::<Language>);
     let language_version = use_state(|| 0);
     let board = use_reducer(BoardState::default);
 
@@ -182,54 +178,30 @@ pub fn Game() -> Html {
         })
     };
 
-    let on_language_change = {
-        let show_language_dialog = show_language_dialog.clone();
-        let pending_language = pending_language.clone();
+    let language_version_setter = {
         let language_version = language_version.clone();
-        let active_game = active_game.clone();
-        
-        Callback::from(move |lang: Language| {
-            if should_show_language_dialog(lang.clone(), *active_game) {
-                pending_language.set(Some(lang));
-                show_language_dialog.set(true);
-            } else {
-                // Switch immediately if no active game
-                switch_language(lang);
-                language_version.set(*language_version + 1);
-            }
+        Callback::from(move |new_version: i32| {
+            language_version.set(new_version);
         })
     };
 
-    let on_confirm_language_change = {
-        let show_language_dialog = show_language_dialog.clone();
-        let pending_language = pending_language.clone();
-        let language_version = language_version.clone();
+    let board_dispatch = {
         let board = board.clone();
+        Callback::from(move |action: Act| {
+            board.dispatch(action);
+        })
+    };
+
+    let on_game_invalidated = {
         let active_game = active_game.clone();
-        
-        Callback::from(move |confirmed: bool| {
-            show_language_dialog.set(false);
-            
-            if confirmed {
-                if let Some(lang) = (*pending_language).clone() {
-                    switch_language(lang);
-                    language_version.set(*language_version + 1);
-                    // Clear the token and invalidate the game state
-                    let _ = LocalStorage::delete("token");
-                    board.dispatch(Act::InvalidGame);
-                    active_game.set(false);
-                }
-            }
-            
-            pending_language.set(None);
+        Callback::from(move |_| {
+            active_game.set(false);
         })
     };
 
 
     html! {
         <>
-
-
             <h1>{t("ui.game_header")}</h1>
 
             <Board board={board.clone()} on_new_game={on_new_game} on_custom_game={on_custom_game} />
@@ -261,10 +233,11 @@ pub fn Game() -> Html {
                         </ul>
                         <div class="game-bar">
             <LanguageSelector
-                on_language_change={on_language_change}
-                pending_language={(*pending_language).clone()}
-                show_dialog={*show_language_dialog}
-                on_confirm_change={on_confirm_language_change}
+                has_active_game={*active_game}
+                board_dispatch={board_dispatch}
+                on_game_invalidated={on_game_invalidated}
+                language_version_setter={language_version_setter}
+                language_version={*language_version}
             />
             </div>
                     </div>
