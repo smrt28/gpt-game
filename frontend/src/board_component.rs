@@ -49,6 +49,7 @@ impl Reducible for BoardState {
 pub struct BoardProps {
     pub board: UseReducerHandle<BoardState>,
     pub on_new_game: Callback<()>,
+    pub on_custom_game: Callback<()>,
 }
 
 #[function_component(Board)]
@@ -59,6 +60,13 @@ pub fn board(props: &BoardProps) -> Html {
         let cb = props.on_new_game.clone();
         Callback::from(move |_| cb.emit(()))
     };
+
+    let onclick_custom = {
+        let cb = props.on_custom_game.clone();
+        Callback::from(move |_| cb.emit(()))
+    };
+
+
 
     let mut game_ended = false;
 
@@ -86,7 +94,7 @@ pub fn board(props: &BoardProps) -> Html {
                   <div class="button-row">
                     <button class="new-game" {onclick}>{ t("ui.new_game") }</button>
 
-                    <button class="new-game">{ t("ui.new_custom_game") }</button>
+                    <button class="new-game" onclick={onclick_custom}>{ t("ui.new_custom_game") }</button>
                   </div>
                 }
             } else {

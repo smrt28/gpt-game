@@ -41,6 +41,7 @@ impl LocaleManager {
         strings.insert("ui.game_header".to_string(), "Guess Who".to_string());
         strings.insert("ui.new_game".to_string(), "New game".to_string());
         strings.insert("ui.new_custom_game".to_string(), "Game for friend".to_string());
+        strings.insert("ui.custom_game_design".to_string(), "Custom game builder".to_string());
 
         strings.insert("ui.404".to_string(), "404".to_string());
         strings.insert("ui.server_error".to_string(), "ServerError".to_string());
@@ -84,6 +85,7 @@ impl LocaleManager {
         strings.insert("ui.new_game".to_string(), "Hra pro přítele".to_string());
         strings.insert("ui.404".to_string(), "404".to_string());
         strings.insert("ui.server_error".to_string(), "Chyba serveru".to_string());
+        strings.insert("ui.custom_game_design".to_string(), "Vyrob si svou hru".to_string());
         
         // Game component
         strings.insert("game.prompt".to_string(), "Ptej se!".to_string());

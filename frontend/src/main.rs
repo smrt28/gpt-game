@@ -1,5 +1,6 @@
 mod ask_prompt_component;
 mod board_component;
+mod custom_game_design_component;
 mod game_component;
 mod language_logic;
 mod language_selector_component;
@@ -10,6 +11,7 @@ use log::info;
 use yew::prelude::*;
 use yew_router::prelude::*;
 use crate::game_component::Game;
+use crate::custom_game_design_component::CustomGameDesign;
 //use crate::server_query::fetch_text;
 
 
@@ -17,6 +19,8 @@ use crate::game_component::Game;
 enum Route {
     #[at("/game")]
     Game,
+    #[at("/custom-game")]
+    CustomGameDesign,
     #[at("/error")]
     Error,
     #[not_found]
@@ -28,6 +32,7 @@ fn switch(route: Route) -> Html {
     info!("Switching to route");
     match route {
         Route::Game => html! { <Game /> },
+        Route::CustomGameDesign => html! { <CustomGameDesign /> },
         Route::Error => html! { <Error /> },
         Route::NotFound => html! { <h1>{ "404" }</h1> },
     }

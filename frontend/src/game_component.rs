@@ -168,6 +168,13 @@ pub fn Game() -> Html {
         })
     };
 
+    let on_custom_game = {
+        let navigator = navigator.clone();
+        Callback::from(move |_| {
+            navigator.push(&Route::CustomGameDesign);
+        })
+    };
+
     let toggle_instructions = {
         let show_instructions = show_instructions.clone();
         Callback::from(move |_| {
@@ -225,7 +232,7 @@ pub fn Game() -> Html {
 
             <h1>{t("ui.game_header")}</h1>
 
-            <Board board={board.clone()} on_new_game={on_new_game} />
+            <Board board={board.clone()} on_new_game={on_new_game} on_custom_game={on_custom_game} />
 
             if *active_game {
                 <AskPrompt 
