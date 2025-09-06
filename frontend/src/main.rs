@@ -14,6 +14,7 @@ use yew::prelude::*;
 use yew_router::prelude::*;
 use crate::game_component::Game;
 use crate::custom_game_design_component::CustomGameDesign;
+use crate::apphome_component::AppHome;
 //use crate::Route::Home;
 //use crate::server_query::fetch_text;
 
@@ -60,12 +61,7 @@ fn Error() -> Html {
     }
 }
 
-#[function_component]
-fn AppHome() -> Html {
-    html! {
-        <h1>{ "Home" }</h1>
-    }
-}
+
 
 fn main() {
     wasm_logger::init(wasm_logger::Config::default());
