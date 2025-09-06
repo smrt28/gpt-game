@@ -7,16 +7,21 @@ mod language_selector_component;
 mod locale;
 mod server_query;
 mod to_html;
+mod apphome_component;
+
 use log::info;
 use yew::prelude::*;
 use yew_router::prelude::*;
 use crate::game_component::Game;
 use crate::custom_game_design_component::CustomGameDesign;
+//use crate::Route::Home;
 //use crate::server_query::fetch_text;
 
 
 #[derive(Clone, Routable, PartialEq)]
 enum Route {
+    #[at("/home")]
+    AppHome,
     #[at("/game")]
     Game,
     #[at("/custom-game")]
@@ -31,6 +36,7 @@ enum Route {
 fn switch(route: Route) -> Html {
     info!("Switching to route");
     match route {
+        Route::AppHome => html! { <AppHome /> },
         Route::Game => html! { <Game /> },
         Route::CustomGameDesign => html! { <CustomGameDesign /> },
         Route::Error => html! { <Error /> },
@@ -51,6 +57,13 @@ fn App() -> Html {
 fn Error() -> Html {
     html! {
         <h1>{ "Server Error" }</h1>
+    }
+}
+
+#[function_component]
+fn AppHome() -> Html {
+    html! {
+        <h1>{ "Home" }</h1>
     }
 }
 
