@@ -40,6 +40,11 @@ pub struct Record {
     pub answers: Option<Answer>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct CustomGameInfo {
+    comment: Option<String>,
+}
+
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct GameState {
@@ -52,11 +57,14 @@ pub struct GameState {
     #[serde(default)]
     pub error: Option<GameError>,
     #[serde(skip_serializing)]
-    pub target: Option<String>,
+    pub identity: Option<String>,
     pub game_ended: bool,
-
     pub lang: Language,
+    pub is_custom: bool,
+    pub custom_info: Option<CustomGameInfo>,
 }
+
+
 
 
 impl Default for GameState {
@@ -66,9 +74,11 @@ impl Default for GameState {
             records: vec![],
             pending_question: None,
             error: None,
-            target: None,
+            identity: None,
             game_ended: false,
             lang: Language::English,
+            is_custom: false,
+            custom_info: None,
         }
     }
 }

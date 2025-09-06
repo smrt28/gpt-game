@@ -8,6 +8,7 @@ pub const TOKEN_LENGTH: usize = 20;
 pub enum TokenType {
     Answer,
     Game,
+    GameTemplate
 }
 
 impl TokenType {
@@ -15,12 +16,14 @@ impl TokenType {
         match self {
             TokenType::Answer => 'a' as u8,
             TokenType::Game => 'g' as u8,
+            TokenType::GameTemplate => 't' as u8,
         }
     }
     pub fn get_token_type(token: &Token) -> Option<TokenType> {
         match token.token[0] as char {
             'a' => Some(TokenType::Answer),
             'g' => Some(TokenType::Game),
+            't' => Some(TokenType::GameTemplate),
             _ => None,
         }
     }

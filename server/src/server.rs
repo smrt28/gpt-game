@@ -394,7 +394,8 @@ async fn new_game(
 ) -> Result<String, AppError> {
     let real_ip = get_real_ip(&headers, addr.ip());
     let identity = crate::locale::get_random_identity(&game_params.get_language()).ok_or(AppError::InternalServerError)?;
-    let game_token = state.game_manager.new_game(&identity, game_params.get_language()).to_string();
+    let game_token =
+        state.game_manager.new_game(&identity, game_params.get_language(), None).to_string();
     info!("new-game-created-for {}: {}", real_ip, game_token);
     Ok(game_token)
 }

@@ -28,9 +28,18 @@ struct StateHelper {
     notifier: Arc<Notify>,
 }
 
+
+#[derive(Clone)]
+pub struct GameTemplate {
+    identity: String,
+    language: Language,
+    properties: CustomGameInfo,
+}
+
 pub struct GameManager {
     game_states: Arc<DashMap<Token, GameState>>,
     helpers: Arc<DashMap<Token, StateHelper>>,
+    custom_games: Arc<DashMap<Token, GameTemplate>>,
 }
 
 impl GameManager {
@@ -38,6 +47,7 @@ impl GameManager {
         Self {
             game_states: Arc::new(DashMap::new()),
             helpers: Arc::new(DashMap::new()),
+            custom_games: Arc::new(DashMap::new()),
         }
     }
 
@@ -73,11 +83,34 @@ impl GameManager {
         Ok(())
     }
 
-    pub fn new_game(&self, identity: &str, lang: Language) -> Token {
+    #[allow(dead_code)]
+    pub fn define_game_template(&self, identity: &str, lang: Language, info: &CustomGameInfo) -> Result<Token, AppError> {
+        let token = Token::new(TokenType::GameTemplate);
+        self.custom_games.insert(token, GameTemplate {
+            identity: identity.to_string(),
+            properties: info.clone(),
+            language: lang.clone(),
+        });
+        Ok(token)
+    }
+
+    #[allow(dead_code)]
+    pub fn new_game_from_template(&self, template_token: &Token) -> Result<Token, AppError> {
+        let template = self.custom_games.get(template_token).ok_or(AppError::GameNotFound)?.deref().clone();
+        Ok(self.new_game(&template.identity, template.language, Some(template.properties)))
+    }
+
+    pub fn new_game(&self, identity: &str, lang: Language, custom_info: Option<CustomGameInfo>) -> Token {
         let token = Token::new(TokenType::Game);
         let mut game = GameState::default();
         game.lang = lang.clone();
-        game.target = Some(identity.to_string());
+        game.identity = Some(identity.to_string());
+
+        if let Some(custom_info) = custom_info {
+            game.is_custom = true;
+            game.custom_info = Some(custom_info);
+        }
+
         self.game_states.insert(token, game);
         self.helpers.insert(token, StateHelper::default());
         info!("*** New game: {}; [{}]; lang={}", token.to_string(), identity, lang.to_code());
@@ -86,7 +119,7 @@ impl GameManager {
 
     pub fn get_target(&self, token: &Token) -> Result<String, AppError> {
         let game = self.get_game(token)?;
-        game.target.clone().ok_or(AppError::InternalServerError)
+        game.identity.clone().ok_or(AppError::InternalServerError)
     }
     
     pub fn get_language(&self, token: &Token) -> Result<Language, AppError> {
