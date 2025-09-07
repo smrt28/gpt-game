@@ -1,23 +1,7 @@
 use std::collections::HashMap;
 use log::info;
 use shared::locale::Language;
-
-pub struct Helper<'a> {
-    map: &'a mut HashMap<String, String>,
-}
-
-impl<'a> Helper<'a> {
-    pub fn new(map: &'a mut HashMap<String, String>) -> Self {
-        Self {
-            map
-        }
-    }
-
-    pub fn add(&mut self, key: &str, value: &str) {
-        self.map.insert(key.to_string(), value.to_string());
-    }
-}
-
+use shared::locale::Helper;
 
 #[derive(Debug, Clone)]
 pub struct LocaleManager {

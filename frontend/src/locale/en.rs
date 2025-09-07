@@ -1,4 +1,4 @@
-use crate::locale::Helper;
+use shared::locale::Helper;
 
 pub fn load(h: &mut Helper) {
     // Page titles and headers
