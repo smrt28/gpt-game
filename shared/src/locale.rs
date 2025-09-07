@@ -89,3 +89,7 @@ impl<'a> TranslationInserter<'a>  {
         self.translations.add(self.lang.clone(), key, value);
     }
 }
+
+pub trait Localizer {
+    fn to_localized_string(&self, lang: &Language) -> String;
+}

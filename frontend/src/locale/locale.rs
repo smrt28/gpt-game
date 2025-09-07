@@ -1,6 +1,7 @@
 use log::info;
 use shared::locale::{Language, Translations};
 use shared::locale::TranslationInserter;
+use shared::locale::Localizer;
 
 #[derive(Debug, Clone)]
 pub struct LocaleManager {
@@ -116,4 +117,8 @@ pub fn t_for_language(lang: &Language, key: &str) -> String {
 #[allow(dead_code)]
 pub fn tf(key: &str, args: &[&str]) -> String {
     LOCALE_MANAGER.with(|manager| manager.borrow().get_formatted(key, args))
+}
+
+pub fn t_shared<T: Localizer>(val: &T) -> String {
+    val.to_localized_string(&get_current_language())
 }

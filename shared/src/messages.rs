@@ -4,7 +4,7 @@ use serde_with::skip_serializing_none;
 use time::OffsetDateTime;
 
 
-use crate::locale::Language;
+use crate::locale::{Language};
 //use crate::messages::GameTemplateError::EmptyIdentity;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -43,9 +43,10 @@ pub struct Record {
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct CustomGameInfo {
-    comment: Option<String>,
+    pub comment: Option<String>,
 }
 
+pub const MAX_IDENTITY_STRING_LEN: usize = 20;
 
 #[derive(Debug, PartialEq)]
 pub enum GameTemplateStatus {
@@ -54,6 +55,8 @@ pub enum GameTemplateStatus {
     ToLongIdentity,
     NotSet,
 }
+
+
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct GameTemplate {
