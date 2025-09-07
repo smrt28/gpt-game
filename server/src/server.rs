@@ -183,7 +183,8 @@ pub async fn run_server(
     let mut app = Router::new()
         .route("/api/token", get(index))
         .route("/api/game/new", get(new_game))
-        .route("/api/game/new_template", post(new_game_template))
+        .route("/api/template/new", post(new_game_template))
+        .route("/api/template/{token}", get(game_template))
         .route("/api/game/{token}/ask", post(ask))
         .route("/api/game/{token}", get(game))
         .route("/", get(redirect_to_game))
@@ -422,4 +423,20 @@ async fn new_game_template(
     let template_token = template_token.to_string();
     info!("new-game-template-created-for {}; template_token={}", real_ip, template_token);
     Ok(template_token)
+}
+
+
+async fn game_template(
+    headers: HeaderMap,
+    State(state): State<Shared>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    Path(token_str): Path<String>,
+) -> Result<String, AppError> {
+    let real_ip = get_real_ip(&headers, addr.ip());
+    let token = Token::from_string(token_str.as_str()).map_err(|e| {
+        warn!("invalid token from {}: {} - {}", real_ip, token_str, e);
+        e
+    })?;
+    let game_template = state.game_manager.get_game_template(&token)?;
+    Ok(ServerResponse::from_content(Status::Ok, game_template).to_response()?)
 }

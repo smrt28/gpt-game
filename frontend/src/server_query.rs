@@ -1,5 +1,6 @@
 use gloo::net::http::Request;
 use log::info;
+use shared::messages::GameTemplate;
 use crate::locale::get_current_language;
 
 pub async fn fetch_text(path: &str) -> anyhow::Result<String> {
@@ -25,8 +26,20 @@ pub async fn send_question(token: &str, text: &str) -> anyhow::Result<String> {
     Ok(res.text().await?)
 }
 
-
 pub async fn fetch_new_game_token() -> anyhow::Result<String> {
     let code = get_current_language().to_code();
     fetch_text(&format!("/api/game/new?lang={}", code)).await
+}
+
+
+pub async fn create_game_template(game_template: &GameTemplate) -> anyhow::Result<String> {
+    let request = Request::post("/api/template/new")
+            .body(serde_json::to_string(game_template)?)?;
+    let res = request.send().await?;
+    if res.status() != 200 {
+        return Err(anyhow::anyhow!("create_custom_game: server error: {}", res.status()));
+    }
+    let text = res.text().await?;
+    info!("created game template: {}", &text);
+    Ok(text)
 }

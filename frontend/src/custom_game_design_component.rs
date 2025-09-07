@@ -3,11 +3,13 @@ use log::info;
 use yew::{function_component, html, Html, use_state, Callback, use_node_ref};
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use wasm_bindgen::JsCast;
+use yew::platform::spawn_local;
 use yew_router::hooks::use_navigator;
 use shared::messages::{CustomGameInfo, GameTemplate, GameTemplateStatus, MAX_IDENTITY_STRING_LEN};
 use crate::locale::{get_current_language, t, t_shared};
 use crate::language_selector_component::LanguageSelector;
 use crate::Route;
+use crate::server_query::create_game_template;
 
 #[function_component(CustomGameDesign)]
 pub fn custom_game_design() -> Html {
@@ -48,12 +50,14 @@ pub fn custom_game_design() -> Html {
     };
 
     let on_comment_input = {
-        Callback::from(move |e: web_sys::InputEvent| {
+        Callback::from(move |_e: web_sys::InputEvent| {
+            /*
             if let Some(target) = e.target() {
                 if let Ok(textarea) = target.dyn_into::<HtmlTextAreaElement>() {
                     //comment.set(textarea.value());
                 }
             }
+             */
         })
     };
 
@@ -67,7 +71,7 @@ pub fn custom_game_design() -> Html {
     let on_create = {
         let identity_ref = identity_ref.clone();
         let comment_ref = comment_ref.clone();
-        let form_status = form_status.clone();
+        //let form_status = form_status.clone();
         //let navigator = navigator.clone();
         Callback::from(move |_| {
             let identity_str: String;
@@ -84,20 +88,23 @@ pub fn custom_game_design() -> Html {
                 comment_str = comment_ref.value().clone();
             }
 
-            let game_template = GameTemplate {
-                identity: identity_str,
-                language: get_current_language(),
-                properties: CustomGameInfo {
-                    comment: Some(comment_str),
-                }
-            };
+            spawn_local(async move {
+                let game_template = GameTemplate {
+                    identity: identity_str.clone(),
+                    language: get_current_language(),
+                    properties: CustomGameInfo {
+                        comment: Some(comment_str.clone()),
+                    },
+                };
 
-            // The checks are handled in oninput callbacks. It should not
-            // be possible to push the "Create" button if the form is not valid.
-            // And even if it happens, server side does the same checks.
-
-            log::info!("Creating custom game - Identity: {}, Comment: {}",
+                // The checks are handled in oninput callbacks. It should not
+                // be possible to push the "Create" button if the form is not valid.
+                // And even if it happens, server side does the same checks.
+                log::info!("Creating custom game - Identity: {}, Comment: {}",
                 identity_str, comment_str);
+
+                let _ = create_game_template(&game_template).await;
+            });
         })
     };
 

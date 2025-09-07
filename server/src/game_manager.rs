@@ -85,6 +85,10 @@ impl GameManager {
         Ok(token)
     }
 
+    pub fn get_game_template(&self, token: &Token) -> Result<GameTemplate, AppError> {
+        Ok(self.custom_games.get(token).ok_or(AppError::GameNotFound)?.deref().clone())
+    }
+
     #[allow(dead_code)]
     pub fn new_game_from_template(&self, template_token: &Token) -> Result<Token, AppError> {
         let template = self.custom_games.get(template_token).ok_or(AppError::GameNotFound)?.deref().clone();
