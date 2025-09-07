@@ -174,6 +174,7 @@ async fn redirect_to_game() -> Redirect {
     Redirect::to("/run/game")
 }
 
+
 pub async fn run_server(
     config: &Config,
     factory: Arc<dyn PollableClientFactory<GptClient> + Send + Sync>,) -> anyhow::Result<()> {
@@ -187,6 +188,7 @@ pub async fn run_server(
         .route("/api/template/{token}", get(game_template))
         .route("/api/game/{token}/ask", post(ask))
         .route("/api/game/{token}", get(game))
+        .route("/run/game/{token}", get(game_by_template))
         .route("/", get(redirect_to_game))
         .fallback(get(handler_404))
         ;
@@ -200,8 +202,6 @@ pub async fn run_server(
                 .precompressed_gzip(),
         );
     app = app.nest_service("/static", static_svc);
-
-
 
     let static_svc = ServiceBuilder::new()
         .layer(logging())
@@ -439,4 +439,26 @@ async fn game_template(
     })?;
     let game_template = state.game_manager.get_game_template(&token)?;
     Ok(ServerResponse::from_content(Status::Ok, game_template).to_response()?)
+}
+
+
+async fn game_by_template(
+    headers: HeaderMap,
+    State(state): State<Shared>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    Path(token_str): Path<String>,
+) -> Redirect {
+    let default_redir = Redirect::to("/run/game");
+    let real_ip = get_real_ip(&headers, addr.ip());
+    let Ok(token) = Token::from_string(token_str.as_str()).map_err(|e| {
+        warn!("invalid token from {}: {} - {}", real_ip, token_str, e);
+        e
+    }) else {
+        return default_redir;
+    };
+    let Ok(game_template) = state.game_manager.get_game_template(&token) else {
+        return default_redir;
+    };
+
+    Redirect::to("/run/game")
 }

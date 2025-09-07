@@ -18,6 +18,8 @@ impl LocaleManager {
 
         let mut inserter = TranslationInserter::new(Language::English, &mut manager.translations);
         crate::locale::en::load(&mut inserter);
+
+        let mut inserter = TranslationInserter::new(Language::Czech, &mut manager.translations);
         crate::locale::cs::load(&mut inserter);
         
         // Try to load language from localStorage
