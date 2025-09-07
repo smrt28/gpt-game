@@ -1,5 +1,5 @@
 use yew::{function_component, html, Html, use_state, Callback};
-use web_sys::HtmlInputElement;
+use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use wasm_bindgen::JsCast;
 use yew_router::hooks::use_navigator;
 use crate::locale::t;
@@ -31,8 +31,8 @@ pub fn custom_game_design() -> Html {
     let on_identity_change = {
         let identity_to_guess = identity_to_guess.clone();
         Callback::from(move |e: web_sys::Event| {
-            let input: HtmlInputElement = e.target().unwrap().dyn_into().unwrap();
-            identity_to_guess.set(input.value());
+            let textarea: HtmlTextAreaElement = e.target().unwrap().dyn_into().unwrap();
+            identity_to_guess.set(textarea.value());
         })
     };
 
@@ -61,23 +61,21 @@ pub fn custom_game_design() -> Html {
             <div class="design-container">
                 <div class="input-group">
                     <label for="your-name">{t("custom.your_name_label")}</label>
-                    <input 
-                        id="your-name"
+                    <input
                         type="text" 
                         value={(*your_name).clone()}
                         onchange={on_name_change}
-                        placeholder={t("custom.your_name_placeholder")}
+                        placeholder={t("custom.identity_placeholder")}
                     />
                 </div>
                 
                 <div class="input-group">
                     <label for="identity-to-guess">{t("custom.identity_label")}</label>
-                    <input 
-                        id="identity-to-guess"
-                        type="text" 
+                    <textarea
+                        rows="4"
                         value={(*identity_to_guess).clone()}
                         onchange={on_identity_change}
-                        placeholder={t("custom.identity_placeholder")}
+                        placeholder={t("custom.your_name_placeholder")}
                     />
                 </div>
                 

@@ -172,12 +172,12 @@ html, body {
 }
 
 /* Editor */
-.ask-prompt > textarea {
+textarea {
     width: 100%;
     max-height: calc(2 * 1.25rem + 16px);
     min-height: 60px;
     padding: 10px 12px;
-    border-radius: 12px;
+    border-radius: 10px;
     border: 1px solid rgba(255,255,255,.08);
     background: rgba(255,255,255,.04);
     color: inherit;
@@ -191,7 +191,7 @@ html, body {
     font-size: 16px;
 }
 
-.ask-prompt > textarea:focus {
+textarea:focus {
     border-color: transparent;
     box-shadow: var(--ring, 0 0 0 2px rgba(130,170,255,.35));
     background: rgba(255,255,255,.06);
@@ -232,14 +232,14 @@ html, body {
     min-width: 80px;              /* keep it wide enough */
 }
 
-.ask-prompt > button:hover {
+button:hover {
     background: color-mix(in oklab, var(--accent) 22%, transparent);
     box-shadow: 0 3px 10px rgba(0,0,0,.25);
 }
-.ask-prompt > button:active { transform: translateY(1px); }
+button:active { transform: translateY(1px); }
 
 /* Disabled while pending */
-.ask-prompt > button[disabled] {
+button[disabled] {
     opacity: .6;
     cursor: not-allowed;
     transform: none;
@@ -257,14 +257,14 @@ html, body {
         margin: 4px auto;
         padding: 16px;
     }
-    .ask-prompt > button {
+    button {
         justify-self: stretch;
         /* Larger tap target for mobile */
         min-height: 48px;
         font-size: 16px;
         margin-top: 8px;
     }
-    .ask-prompt > textarea {
+    textarea {
         min-height: 80px;
         /* Larger text on mobile for better readability */
         font-size: 16px;
@@ -275,7 +275,7 @@ html, body {
 /* Touch-friendly improvements */
 @media (hover: none) and (pointer: coarse) {
   /* This targets touch devices */
-  .ask-prompt > button {
+  button {
     min-height: 48px;
     font-size: 16px;
   }
