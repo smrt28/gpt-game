@@ -46,7 +46,7 @@ pub fn custom_game_design() -> Html {
     let on_cancel = {
         let navigator = navigator.clone();
         Callback::from(move |_| {
-            navigator.push(&Route::Game);
+            navigator.push(&Route::AppHome);
         })
     };
 
@@ -89,7 +89,8 @@ pub fn custom_game_design() -> Html {
                     <button class="cancel-button" onclick={on_cancel}>
                         {t("custom.cancel_button")}
                     </button>
-                    <button class="create-button" onclick={on_create} disabled={identity_to_guess.is_empty() || comment.is_empty()}>
+                    <button class="create-button" onclick={on_create}
+                        disabled={identity_to_guess.is_empty()}>
                         {t("custom.create_button")}
                     </button>
                 </div>
