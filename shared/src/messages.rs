@@ -52,6 +52,7 @@ pub enum GameTemplateStatus {
     Ok,
     EmptyIdentity,
     ToLongIdentity,
+    NotSet,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]

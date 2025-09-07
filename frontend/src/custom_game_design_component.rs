@@ -1,8 +1,10 @@
 use log::info;
-use yew::{function_component, html, Html, use_state, Callback};
+//use log::info;
+use yew::{function_component, html, Html, use_state, Callback, use_node_ref};
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use wasm_bindgen::JsCast;
 use yew_router::hooks::use_navigator;
+use shared::messages::GameTemplateStatus;
 use crate::locale::t;
 use crate::language_selector_component::LanguageSelector;
 use crate::Route;
@@ -13,6 +15,10 @@ pub fn custom_game_design() -> Html {
     let language_render_trigger = use_state(|| 0u32);
     let identity_to_guess = use_state(|| String::new());
     let comment = use_state(|| String::new());
+    let form_status = use_state(|| GameTemplateStatus::NotSet);
+
+    let comment_ref = use_node_ref();
+    let identity_ref = use_node_ref();
 
     let on_language_changed = {
         let language_render_trigger = language_render_trigger.clone();
@@ -53,11 +59,42 @@ pub fn custom_game_design() -> Html {
     let on_create = {
         let identity_to_guess = identity_to_guess.clone();
         let comment = comment.clone();
+        let identity_ref = identity_ref.clone();
+        let comment_ref = comment_ref.clone();
+        let form_status = form_status.clone();
         //let navigator = navigator.clone();
         Callback::from(move |_| {
+            let identity_str: String;
+            let mut comment_str: String = String::new();
+
+            if let Some(identity_ref) = identity_ref.cast::<HtmlTextAreaElement>() {
+                identity_str = identity_ref.value().clone();
+                info!("identity: {}", identity_ref.value());
+            } else {
+                form_status.set(GameTemplateStatus::EmptyIdentity);
+                return;
+            }
+
+            if identity_str.len() > 20 {
+                form_status.set(GameTemplateStatus::ToLongIdentity);
+                return;
+            }
+
+            if identity_str.is_empty() {
+                form_status.set(GameTemplateStatus::EmptyIdentity);
+                return;
+            }
+
+            if let Some(comment_ref) = comment_ref.cast::<HtmlTextAreaElement>() {
+                comment_str = comment_ref.value().clone();
+            }
+
+            info!("identity:{:?} comment:{:?}", identity_str, comment_str);
+
             // TODO: Implement create custom game logic here
             // For now, just navigate back to game page
-            log::info!("Creating custom game - Identity: {}, Comment: {}", *identity_to_guess, *comment);
+            log::info!("Creating custom game - Identity: {}, Comment: {}",
+                *identity_to_guess, *comment);
         })
     };
 
@@ -72,6 +109,7 @@ pub fn custom_game_design() -> Html {
                         value={(*identity_to_guess).clone()}
                         oninput={on_identity_input}
                         placeholder={t("custom.identity_placeholder")}
+                        ref={identity_ref}
                     />
                 </div>
 
@@ -82,6 +120,7 @@ pub fn custom_game_design() -> Html {
                         value={(*comment).clone()}
                         oninput={on_comment_input}
                         placeholder={t("custom.comment_placeholder")}
+                        ref={comment_ref}
                     />
                 </div>
 
