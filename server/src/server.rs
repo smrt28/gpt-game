@@ -39,6 +39,7 @@ use shared::{
 };
 use serde::de::Deserializer;
 use shared::locale::Language;
+use shared::messages::{GameTemplate, GameTemplateStatus};
 use crate::config::DirType;
 use crate::locale::t;
 
@@ -182,6 +183,7 @@ pub async fn run_server(
     let mut app = Router::new()
         .route("/api/token", get(index))
         .route("/api/game/new", get(new_game))
+        .route("/api/game/new_template", post(new_game_template))
         .route("/api/game/{token}/ask", post(ask))
         .route("/api/game/{token}", get(game))
         .route("/", get(redirect_to_game))
@@ -398,4 +400,26 @@ async fn new_game(
         state.game_manager.new_game(&identity, game_params.get_language(), None).to_string();
     info!("new-game-created-for {}: {}", real_ip, game_token);
     Ok(game_token)
+}
+
+async fn new_game_template(
+    headers: HeaderMap,
+    State(state): State<Shared>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    body: Bytes,
+) -> Result<String, AppError> {
+    let real_ip = get_real_ip(&headers, addr.ip());
+
+    let body = String::from_utf8_lossy(&body).to_string();
+    let template = serde_json::from_str::<GameTemplate>(&body)?;
+
+    let check_result = template.check();
+    if check_result != GameTemplateStatus::Ok {
+        return Err(AppError::InvalidGameTemplate(check_result));
+    }
+
+    let template_token = state.game_manager.define_game_template(&template)?;
+    let template_token = template_token.to_string();
+    info!("new-game-template-created-for {}; template_token={}", real_ip, template_token);
+    Ok(template_token)
 }

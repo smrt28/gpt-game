@@ -1,3 +1,4 @@
+use log::info;
 use yew::{function_component, html, Html, use_state, Callback};
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use wasm_bindgen::JsCast;
@@ -10,7 +11,7 @@ use crate::Route;
 pub fn custom_game_design() -> Html {
     let navigator = use_navigator().expect("Must be used within a Router");
     let language_render_trigger = use_state(|| 0u32);
-    let your_name = use_state(|| String::new());
+    let identity = use_state(|| String::new());
     let identity_to_guess = use_state(|| String::new());
 
     let on_language_changed = {
@@ -20,19 +21,25 @@ pub fn custom_game_design() -> Html {
         })
     };
 
-    let on_name_change = {
-        let your_name = your_name.clone();
-        Callback::from(move |e: web_sys::Event| {
-            let input: HtmlInputElement = e.target().unwrap().dyn_into().unwrap();
-            your_name.set(input.value());
+    let on_identity_change = {
+        let your_name = identity.clone();
+        Callback::from(move |e: web_sys::InputEvent| {
+            if let Some(target) = e.target() {
+                if let Ok(input) = target.dyn_into::<HtmlInputElement>() {
+                    your_name.set(input.value());
+                }
+            }
         })
     };
 
-    let on_identity_change = {
+    let on_comment_change = {
         let identity_to_guess = identity_to_guess.clone();
-        Callback::from(move |e: web_sys::Event| {
-            let textarea: HtmlTextAreaElement = e.target().unwrap().dyn_into().unwrap();
-            identity_to_guess.set(textarea.value());
+        Callback::from(move |e: web_sys::InputEvent| {
+            if let Some(target) = e.target() {
+                if let Ok(textarea) = target.dyn_into::<HtmlTextAreaElement>() {
+                    identity_to_guess.set(textarea.value());
+                }
+            }
         })
     };
 
@@ -44,14 +51,13 @@ pub fn custom_game_design() -> Html {
     };
 
     let on_create = {
-        let your_name = your_name.clone();
+        let identity = identity.clone();
         let identity_to_guess = identity_to_guess.clone();
-        let navigator = navigator.clone();
+        //let navigator = navigator.clone();
         Callback::from(move |_| {
             // TODO: Implement create custom game logic here
             // For now, just navigate back to game page
-            log::info!("Creating custom game - Name: {}, Identity: {}", *your_name, *identity_to_guess);
-            navigator.push(&Route::Game);
+            log::info!("Creating custom game - Name: {}, Identity: {}", *identity, *identity_to_guess);
         })
     };
 
@@ -63,18 +69,18 @@ pub fn custom_game_design() -> Html {
                     <label for="your-name">{t("custom.your_name_label")}</label>
                     <input
                         type="text" 
-                        value={(*your_name).clone()}
-                        onchange={on_name_change}
+                        value={(*identity).clone()}
+                        oninput={on_identity_change}
                         placeholder={t("custom.identity_placeholder")}
                     />
                 </div>
-                
+
                 <div class="input-group">
                     <label for="identity-to-guess">{t("custom.comment_label")}</label>
                     <textarea
                         rows="5"
                         value={(*identity_to_guess).clone()}
-                        onchange={on_identity_change}
+                        oninput={on_comment_change}
                         placeholder={t("custom.comment")}
                     />
                 </div>
@@ -83,7 +89,7 @@ pub fn custom_game_design() -> Html {
                     <button class="cancel-button" onclick={on_cancel}>
                         {t("custom.cancel_button")}
                     </button>
-                    <button class="create-button" onclick={on_create} disabled={your_name.is_empty() || identity_to_guess.is_empty()}>
+                    <button class="create-button" onclick={on_create} disabled={identity.is_empty() || identity_to_guess.is_empty()}>
                         {t("custom.create_button")}
                     </button>
                 </div>

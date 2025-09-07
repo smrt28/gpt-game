@@ -1,5 +1,6 @@
 use axum::{response::{IntoResponse, Response}, http::StatusCode, Json};
 use shared::messages::Status;
+use shared::messages::GameTemplateStatus;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
@@ -28,7 +29,10 @@ pub enum AppError {
     InternalServerError,
 
     #[error("timeout")]
-    Timeout
+    Timeout,
+
+    #[error("invalid game template")]
+    InvalidGameTemplate(GameTemplateStatus),
 }
 
 impl IntoResponse for AppError {

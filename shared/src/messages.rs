@@ -5,6 +5,7 @@ use time::OffsetDateTime;
 
 
 use crate::locale::Language;
+//use crate::messages::GameTemplateError::EmptyIdentity;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "snake_case")]
@@ -45,6 +46,35 @@ pub struct CustomGameInfo {
     comment: Option<String>,
 }
 
+
+#[derive(Debug, PartialEq)]
+pub enum GameTemplateStatus {
+    Ok,
+    EmptyIdentity,
+    ToLongIdentity,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct GameTemplate {
+    pub identity: String,
+    pub language: Language,
+    pub properties: CustomGameInfo,
+}
+
+impl GameTemplate {
+    pub fn check(&self) -> GameTemplateStatus {
+        if self.identity.is_empty() {
+            return GameTemplateStatus::EmptyIdentity;
+        }
+
+        if self.identity.len() > 20 {
+          return GameTemplateStatus::ToLongIdentity;
+        }
+
+        return GameTemplateStatus::Ok;
+    }
+}
+
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct GameState {
@@ -63,9 +93,6 @@ pub struct GameState {
     pub is_custom: bool,
     pub custom_info: Option<CustomGameInfo>,
 }
-
-
-
 
 impl Default for GameState {
     fn default() -> Self {

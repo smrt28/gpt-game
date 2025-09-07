@@ -29,12 +29,7 @@ struct StateHelper {
 }
 
 
-#[derive(Clone)]
-pub struct GameTemplate {
-    identity: String,
-    language: Language,
-    properties: CustomGameInfo,
-}
+
 
 pub struct GameManager {
     game_states: Arc<DashMap<Token, GameState>>,
@@ -84,13 +79,9 @@ impl GameManager {
     }
 
     #[allow(dead_code)]
-    pub fn define_game_template(&self, identity: &str, lang: Language, info: &CustomGameInfo) -> Result<Token, AppError> {
+    pub fn define_game_template(&self, template: &GameTemplate) -> Result<Token, AppError> {
         let token = Token::new(TokenType::GameTemplate);
-        self.custom_games.insert(token, GameTemplate {
-            identity: identity.to_string(),
-            properties: info.clone(),
-            language: lang.clone(),
-        });
+        self.custom_games.insert(token, template.clone());
         Ok(token)
     }
 
