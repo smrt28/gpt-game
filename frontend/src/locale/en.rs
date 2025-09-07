@@ -1,6 +1,6 @@
-use shared::locale::Helper;
+use shared::locale::TranslationInserter;
 
-pub fn load(h: &mut Helper) {
+pub fn load(h: &mut TranslationInserter) {
     // Page titles and headers
     h.add("ui.page_title", "Guess Who");
     h.add("ui.game_header", "Guess Who");

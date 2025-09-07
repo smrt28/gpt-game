@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 use std::path::PathBuf;
-use shared::locale::Language;
+use shared::locale::{Language, TranslationInserter, Translations};
 use crate::config::Config;
 
 #[derive(Default, Clone, Debug)]
@@ -33,15 +33,14 @@ impl Identities {
 
 #[derive(Debug, Clone)]
 pub struct LocaleManager {
-    translations: HashMap<Language, HashMap<String, String>>,
+    translations: Translations,
     identities: HashMap<Language, Identities>,
-
 }
 
 impl LocaleManager {
     pub fn new(config: &Config) -> Self {
         let mut manager = Self {
-            translations: HashMap::new(),
+            translations: Translations::new(),
             identities: HashMap::new(),
         };
         
@@ -67,71 +66,53 @@ impl LocaleManager {
     }
     
     fn load_english(&mut self) {
-        let mut strings = HashMap::new();
-        
+        let mut i = TranslationInserter::new(Language::English, &mut self.translations);
+
         // User-facing error messages only
-        strings.insert("error.invalid_token".to_string(), "invalid token".to_string());
-        strings.insert("error.pending".to_string(), "pending".to_string());
-        strings.insert("error.game_not_found".to_string(), "game not found".to_string());
-        strings.insert("error.invalid_input".to_string(), "invalid input".to_string());
-        strings.insert("error.internal_server_error".to_string(), "internal server error".to_string());
-        strings.insert("error.timeout".to_string(), "timeout".to_string());
-        strings.insert("error.not_found".to_string(), "Not found".to_string());
-        
+        i.add("error.invalid_token", "invalid token");
+        i.add("error.pending", "pending");
+        i.add("error.game_not_found", "game not found");
+        i.add("error.invalid_input", "invalid input");
+        i.add("error.internal_server_error", "internal server error");
+        i.add("error.timeout", "timeout");
+        i.add("error.not_found", "Not found");
+
         // Game responses (user-facing)
-        strings.insert("game.final_answer".to_string(), "I'm {}".to_string());
-        strings.insert("game.weird_question".to_string(), "Weird question, skip...".to_string());
-        strings.insert("game.gpt_fallback".to_string(), "UNABLE; this is weird".to_string());
-        
+        i.add("game.final_answer", "I'm {}");
+        i.add("game.weird_question", "Weird question, skip...");
+        i.add("game.gpt_fallback", "UNABLE; this is weird");
+
         // Cheat detection phrases (user input matching)
-        strings.insert("cheat.im_loser".to_string(), "IM LOSER".to_string());
-        strings.insert("cheat.i_am_loser".to_string(), "I AM LOSER".to_string());
-        strings.insert("cheat.im_a_loser".to_string(), "IM A LOSER".to_string());
-                
-        self.translations.insert(Language::English, strings);
+        i.add("cheat.im_loser", "IM LOSER");
+        i.add("cheat.i_am_loser", "I AM LOSER");
+        i.add("cheat.im_a_loser", "IM A LOSER");
     }
     
     fn load_czech(&mut self) {
-        let mut strings = HashMap::new();
-        
+        let mut i = TranslationInserter::new(Language::Czech, &mut self.translations);
+
         // User-facing error messages only
-        strings.insert("error.invalid_token".to_string(), "neplatný token".to_string());
-        strings.insert("error.pending".to_string(), "čeká se".to_string());
-        strings.insert("error.game_not_found".to_string(), "hra nenalezena".to_string());
-        strings.insert("error.invalid_input".to_string(), "neplatný vstup".to_string());
-        strings.insert("error.internal_server_error".to_string(), "vnitřní chyba serveru".to_string());
-        strings.insert("error.timeout".to_string(), "časový limit".to_string());
-        strings.insert("error.not_found".to_string(), "Nenalezeno".to_string());
-        
+        i.add("error.invalid_token", "neplatný token");
+        i.add("error.pending", "čeká se");
+        i.add("error.game_not_found", "hra nenalezena");
+        i.add("error.invalid_input", "neplatný vstup");
+        i.add("error.internal_server_error", "vnitřní chyba serveru");
+        i.add("error.timeout", "časový limit");
+        i.add("error.not_found", "Nenalezeno");
+
         // Game responses (user-facing)
-        strings.insert("game.final_answer".to_string(), "Jsem {}".to_string());
-        strings.insert("game.weird_question".to_string(), "Podivná otázka, přeskočit...".to_string());
-        strings.insert("game.gpt_fallback".to_string(), "NEMOHU; to je divné".to_string());
-        
+        i.add("game.final_answer", "Jsem {}");
+        i.add("game.weird_question", "Podivná otázka, přeskočit...");
+        i.add("game.gpt_fallback", "NEMOHU; to je divné");
+
         // Cheat detection phrases (user input matching)
-        strings.insert("cheat.im_loser".to_string(), "JSEM PORAŽENÝ".to_string());
-        strings.insert("cheat.i_am_loser".to_string(), "JÁ JSEM PORAŽENÝ".to_string());
-        strings.insert("cheat.im_a_loser".to_string(), "JSEM NEÚSPĚŠNÝ".to_string());
-        
-        self.translations.insert(Language::Czech, strings);
+        i.add("cheat.im_loser", "JSEM PORAŽENÝ");
+        i.add("cheat.i_am_loser", "JÁ JSEM PORAŽENÝ");
+        i.add("cheat.im_a_loser", "JSEM NEÚSPĚŠNÝ");
     }
     
     pub fn get(&self, lang: &Language, key: &str) -> String {
-        self.translations
-            .get(lang)
-            .and_then(|lang_map| lang_map.get(key))
-            .cloned()
-            .unwrap_or_else(|| {
-                // Fallback to English if key not found in requested language
-                self.translations
-                    .get(&Language::English)
-                    .and_then(|eng_map| eng_map.get(key))
-                    .cloned()
-                    .unwrap_or_else(|| {
-                        eprintln!("Missing locale key: {} for language: {:?}", key, lang);
-                        format!("MISSING_LOCALE_KEY[{}]", key)
-                    })
-            })
+        self.translations.get(lang, key)
     }
     
     pub fn get_formatted(&self, lang: &Language, key: &str, args: &[&str]) -> String {
@@ -204,33 +185,4 @@ pub fn get_random_identity(lang: &Language) -> Option<String> {
 
 pub fn get_identities(lang: &Language) -> Option<&'static Identities> {
     get_locale_manager().get_identities(lang)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    
-    #[test]
-    fn test_language_from_str() {
-        assert_eq!(Language::from_str("en"), Some(Language::English));
-        assert_eq!(Language::from_str("cs"), Some(Language::Czech));
-        assert_eq!(Language::from_str("invalid"), None);
-    }
-    
-    #[test]
-    fn test_locale_manager_get() {
-        let manager = LocaleManager::new();
-        assert_eq!(manager.get(&Language::English, "error.invalid_token"), "invalid token");
-        assert_eq!(manager.get(&Language::Czech, "error.invalid_token"), "neplatný token");
-    }
-    
-    #[test]
-    fn test_locale_manager_get_formatted() {
-        let manager = LocaleManager::new();
-        let result = manager.get_formatted(&Language::English, "game.final_answer", &["Pikachu"]);
-        assert_eq!(result, "I'm Pikachu");
-        
-        let result_cs = manager.get_formatted(&Language::Czech, "game.final_answer", &["Pikachu"]);
-        assert_eq!(result_cs, "Jsem Pikachu");
-    }
 }

@@ -1,23 +1,23 @@
-use std::collections::HashMap;
 use log::info;
-use shared::locale::Language;
-use shared::locale::Helper;
+use shared::locale::{Language, Translations};
+use shared::locale::TranslationInserter;
 
 #[derive(Debug, Clone)]
 pub struct LocaleManager {
-    translations: HashMap<Language, HashMap<String, String>>,
+    translations: Translations,
     current_language: Language,
 }
 
 impl LocaleManager {
     pub fn new() -> Self {
         let mut manager = Self {
-            translations: HashMap::new(),
+            translations: Translations::new(),
             current_language: Language::English,
         };
-        
-        manager.load_english();
-        manager.load_czech();
+
+        let mut inserter = TranslationInserter::new(Language::English, &mut manager.translations);
+        crate::locale::en::load(&mut inserter);
+        crate::locale::cs::load(&mut inserter);
         
         // Try to load language from localStorage
         if let Some(storage_result) = web_sys::window()
@@ -33,21 +33,7 @@ impl LocaleManager {
         
         manager
     }
-    
-    fn load_english(&mut self) {
-        let mut strings = HashMap::new();
-        let mut helper = Helper::new(&mut strings);
-        crate::locale::en::load(&mut helper);
-        self.translations.insert(Language::English, strings);
-    }
-    
-    fn load_czech(&mut self) {
-        let mut strings = HashMap::new();
-        let mut helper = Helper::new(&mut strings);
-        crate::locale::cs::load(&mut helper);
-        self.translations.insert(Language::Czech, strings);
-    }
-    
+
     pub fn get_current_language(&self) -> &Language {
         &self.current_language
     }
@@ -69,21 +55,7 @@ impl LocaleManager {
     }
 
     pub fn get_for_language(&self, lang: &Language, key: &str) -> String {
-        self.translations
-            .get(lang)
-            .and_then(|lang_map| lang_map.get(key))
-            .cloned()
-            .unwrap_or_else(|| {
-                // Fallback to English if key not found in requested language
-                self.translations
-                    .get(&Language::English)
-                    .and_then(|eng_map| eng_map.get(key))
-                    .cloned()
-                    .unwrap_or_else(|| {
-                        web_sys::console::warn_1(&format!("Missing locale key: {} for language: {:?}", key, lang).into());
-                        format!("MISSING_LOCALE_KEY[{}]", key)
-                    })
-            })
+        self.translations.get(lang, key)
     }
     
     #[allow(dead_code)]

@@ -1,6 +1,6 @@
-use shared::locale::Helper;
+use shared::locale::TranslationInserter;
 
-pub fn load(h: &mut Helper) {
+pub fn load(h: &mut TranslationInserter) {
     // Page titles and headers
     h.add("ui.page_title", "Hádej kdo jsem");
     h.add("ui.game_header", "Hádej kdo jsem");
@@ -42,7 +42,6 @@ pub fn load(h: &mut Helper) {
     h.add("custom.identity_placeholder", "identita k uhodnutí");
     h.add("custom.comment_label", "Komentář:");
     h.add("custom.comment_placeholder", "Komentář ke hře");
-
 
     h.add("custom.cancel_button", "Zrušit");
     h.add("custom.create_button", "Vytvořit");

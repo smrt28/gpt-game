@@ -1,22 +1,6 @@
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
-pub struct Helper<'a> {
-    map: &'a mut HashMap<String, String>,
-}
-
-impl<'a> Helper<'a> {
-    pub fn new(map: &'a mut HashMap<String, String>) -> Self {
-        Self {
-            map
-        }
-    }
-
-    pub fn add(&mut self, key: &str, value: &str) {
-        self.map.insert(key.to_string(), value.to_string());
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub enum Language {
     #[serde(rename = "en")]
@@ -59,5 +43,49 @@ impl Language {
 impl Default for Language {
     fn default() -> Self {
         Language::English
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Translations {
+    translations: HashMap<Language, HashMap<String, String>>,
+}
+
+
+impl Translations {
+    pub fn new() -> Self {
+        Self {
+            translations: HashMap::new(),
+        }
+    }
+
+    pub fn get(&self, lang: &Language, key: &str) -> String {
+        self.translations.get(lang)
+            .and_then(|eng_map| eng_map.get(key))
+            .cloned()
+            .unwrap_or_else(|| {
+                format!("MISSING_LOCALE_KEY[{}]", key)
+            })
+    }
+
+    fn add(&mut self, lang: Language, key: &str, value: &str) {
+        self.translations.entry(lang)
+            .or_default()
+            .insert(key.to_string(), value.to_string());
+    }
+}
+
+pub struct TranslationInserter<'a> {
+    translations: &'a mut Translations,
+    lang: Language,
+}
+
+impl<'a> TranslationInserter<'a>  {
+    pub fn new(lang: Language, translations: &'a mut Translations) -> Self {
+        Self { lang, translations }
+    }
+
+    pub fn add(&mut self, key: &str, value: &str) {
+        self.translations.add(self.lang.clone(), key, value);
     }
 }
