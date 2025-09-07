@@ -38,10 +38,10 @@ pub fn load(h: &mut Helper) {
     h.add("dialog.no", "No");
 
     // Custom game design
-    h.add("custom.your_name_label", "Identity:");
-    h.add("custom.comment_label", "Comment:");
+    h.add("custom.identity_label", "Identity:");
     h.add("custom.identity_placeholder", "identity to guess");
-    h.add("custom.comment", "The game description");
+    h.add("custom.comment_label", "Comment:");
+    h.add("custom.comment_placeholder", "The game description");
 
     h.add("custom.cancel_button", "Cancel");
     h.add("custom.create_button", "Create");
