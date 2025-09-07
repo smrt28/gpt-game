@@ -38,10 +38,13 @@ pub fn load(h: &mut Helper) {
     h.add("dialog.no", "Ne");
 
     // Custom game design
-    h.add("custom.your_name_label", "Tvé jméno:");
-    h.add("custom.your_name_placeholder", "Zadej své jméno");
-    h.add("custom.identity_label", "Identita k hádání:");
-    h.add("custom.identity_placeholder", "Koho má tvůj přítel hádat?");
+
+    h.add("custom.your_name_label", "Identita:");
+    h.add("custom.comment_label", "Komentář:");
+    h.add("custom.identity_placeholder", "identita k uhodnutí");
+    h.add("custom.comment", "Komentář ke hře");
+
+
     h.add("custom.cancel_button", "Zrušit");
     h.add("custom.create_button", "Vytvořit");
 }

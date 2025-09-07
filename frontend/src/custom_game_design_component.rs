@@ -70,12 +70,12 @@ pub fn custom_game_design() -> Html {
                 </div>
                 
                 <div class="input-group">
-                    <label for="identity-to-guess">{t("custom.identity_label")}</label>
+                    <label for="identity-to-guess">{t("custom.comment_label")}</label>
                     <textarea
-                        rows="4"
+                        rows="5"
                         value={(*identity_to_guess).clone()}
                         onchange={on_identity_change}
-                        placeholder={t("custom.your_name_placeholder")}
+                        placeholder={t("custom.comment")}
                     />
                 </div>
                 
